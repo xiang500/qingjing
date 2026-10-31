@@ -1,0 +1,26 @@
+# 依赖与构建产物
+node_modules/
+dist/
+target/
+.m2repo/
+.npm-cache/
+.tools/
+
+# 本地数据库实例
+mysql-data/
+.mysql/
+
+# 编辑器原子写入的临时目录
+*.tmpdir/
+
+# 运行时大资源（npm run fetch:assets 拉取）
+frontend/public/models/
+frontend/public/mediapipe-wasm/
+
+# 编辑器
+.idea/
+.vscode/
+*.iml
+
+# 日志
+*.log

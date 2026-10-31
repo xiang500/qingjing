@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <!-- 把依赖仓库固定在工作区内，避免沙箱对用户目录的写限制 -->
+  <localRepository>D:\Deepseekharness\DeepseekProjects\qingjing\.m2repo</localRepository>
+
+  <mirrors>
+    <mirror>
+      <id>aliyun-public</id>
+      <name>Aliyun public mirror</name>
+      <url>https://maven.aliyun.com/repository/public</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>

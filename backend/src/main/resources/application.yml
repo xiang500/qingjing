@@ -1,0 +1,56 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: qingjing-server
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3307/qingjing?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: qingjing
+    password: Qingjing@2026
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 5000
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
+  mvc:
+    problemdetails:
+      enabled: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    root: info
+    com.qingjing: debug
+
+# AI 通道：配置了 Key 走 DeepSeek，未配置时自动退化为本地策略引擎
+qingjing:
+  auth:
+    # 生产环境务必用 QINGJING_JWT_SECRET 覆盖
+    secret: ${QINGJING_JWT_SECRET:qingjing-dev-secret-change-me-in-production-2026}
+    ttl-hours: 168
+  ai:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    model: ${DEEPSEEK_MODEL:deepseek-chat}
+    temperature: 0.7
+    max-tokens: 900
+    timeout-seconds: 60
+    knowledge-top-k: 3
+    max-tool-rounds: 3

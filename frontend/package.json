@@ -1,0 +1,33 @@
+{
+  "name": "qingjing-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "轻境 · AI 实时穿搭与 3D 数字衣橱 —— Web 前端",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit",
+    "fetch:assets": "node scripts/fetch-assets.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.0",
+    "@types/three": "^0.187.0",
+    "axios": "^1.8.4",
+    "gsap": "^3.15.0",
+    "pinia": "^3.0.2",
+    "three": "^0.187.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
+    "@types/node": "^22.15.3",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "tailwindcss": "^4.1.4",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.4",
+    "vue-tsc": "^2.2.10"
+  }
+}

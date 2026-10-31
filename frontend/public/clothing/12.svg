@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 600" width="480" height="600" role="img">
+  <defs>
+    <radialGradient id="bg" cx="32%" cy="14%" r="86%">
+      <stop offset="0%" stop-color="#D9C07A" stop-opacity="0.32"/>
+      <stop offset="58%" stop-color="#121826" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0a0e16" stop-opacity="0.9"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="600" rx="28" fill="url(#bg)"/>
+  <path d="M96 92 Q240 44 384 92" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+  <ellipse cx="240" cy="536" rx="128" ry="16" fill="rgba(0,0,0,0.26)"/>
+  <g opacity="0.96">
+    <path d="M168 168 Q240 300 312 168" fill="none" stroke="#D9C07A" stroke-width="6" stroke-linecap="round"/>
+    <path d="M240 306 L262 348 L240 390 L218 348 Z" fill="#D9C07A" stroke="rgba(0,0,0,0.2)" stroke-width="2"/>
+    <circle cx="240" cy="348" r="10" fill="rgba(255,255,255,0.35)"/></g>
+  <rect width="480" height="600" rx="28" fill="url(#sheen)"/>
+</svg>

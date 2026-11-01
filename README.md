@@ -6,7 +6,7 @@
 > - ✅ 阶段一 · 建库搭架：9 张表、衣橱 CRUD、统计看板、前端工作台
 > - ✅ 阶段二 · 接入大模型：SSE 流式对话、Function Calling、轻量 RAG、结构化推荐、会话持久化
 > - ✅ 阶段三 · 视觉进阶：Three.js 程序化数字人、GSAP 换装过渡、MediaPipe 端侧姿态识别、JWT 登录
-> - ⏳ 阶段四 · 融合冲刺（社区、AI 推荐 → 换装联动、分享卡片）
+> - ✅ 阶段四 · 融合冲刺：社区发帖/点赞、AI 推荐 → 3D 试衣联动、分享卡片导出、体验打磨
 
 ---
 
@@ -27,9 +27,11 @@
 | --- | --- |
 | ![数字衣橱](docs/screenshots/wardrobe.png) | ![AI 顾问](docs/screenshots/assistant.png) |
 
-| AI 思考过程（流式） | 实时试衣镜（阶段三占位） |
+| AI 思考过程（流式） | 实时试衣镜（3D） |
 | --- | --- |
 | ![流式对话](docs/screenshots/assistant-streaming.png) | ![试衣镜](docs/screenshots/mirror.png) |
+
+![灵感社区](docs/screenshots/community.png)
 
 ---
 
@@ -102,6 +104,16 @@ SSE「recommendation」→ 前端推荐卡片（缩略图、契合度、换一�
 - 密码使用 BCrypt（`spring-security-crypto`，未启用整套 Spring Security，避免默认过滤器链干扰接口）
 - 前端 `stores/auth.ts` 持久化 token，Axios 与 SSE 请求自动带 `Authorization`；页面右上角可登录/退出
 
+### 4.5 社区与联动（阶段四）
+
+- **社区**：`community/posts` 分页信息流、发帖、点赞（`post_like` 唯一键保证一人一赞）、删除（仅本人）
+- **发帖可选关联套装**：后端按套装解析出封面与单品名，前端不用再补请求
+- **AI → 3D 联动**：推荐卡片的「在试衣镜试穿」把单品 ID 写进路由（`/mirror?ids=2,3,9,12`），
+  试衣镜读取后直接换装；社区卡片的「试穿此搭」复用同一条链路
+- **分享卡片**：`utils/shareCard.ts` 用 Canvas 2D 绘制 1080×1440 卡片（标题 / 契合度 / 单品缩略图 / 推荐理由），
+  直接导出 PNG，可发到社区之外
+- **发布入口**：AI 回答里的「分享到社区」把标题、理由、单品图带进发布弹窗，避免重复填写
+
 ---
 
 ## 5. 目录结构
@@ -118,8 +130,8 @@ qingjing/
 │  │  │  ├─ OutfitKnowledge          # 轻量 RAG（二元组检索）
 │  │  │  └─ tool/                    # 四个工具 + 注册表
 │  │  ├─ auth/                   # JwtService、JwtAuthFilter、AuthController
-│  │  ├─ controller/            # clothing / outfit / meta / AiChatController
-│  │  ├─ service/               # ClothingService / OutfitService / ChatService
+│  │  ├─ controller/            # clothing / outfit / meta / AiChat / Community / Auth
+│  │  ├─ service/               # ClothingService / OutfitService / ChatService / CommunityService
 │  │  ├─ config/                # 分页、用户上下文、密码编码器、AI 装配（虚拟线程执行器）
 │  │  ├─ common/ dto/ entity/ mapper/ vo/
 │  │  └─ QingjingApplication.java
@@ -130,7 +142,8 @@ qingjing/
 │  ├─ src/api/                  # http.ts（Axios）/ ai.ts（SSE 解析）/ auth.ts
 │  ├─ src/stores/               # wardrobe.ts / assistant.ts / auth.ts
 │  ├─ src/mirror/               # MirrorScene（Three.js 场景）/ usePoseTracker（MediaPipe）
-│  ├─ src/components/           # 衣橱组件 + ai/（思考轨迹、推荐卡片）+ LoginDialog
+│  ├─ src/components/           # 衣橱组件 + ai/（思考轨迹、推荐卡片）+ community/（帖子、发布）+ LoginDialog
+│  ├─ src/utils/shareCard.ts    # Canvas 分享卡片导出
 │  ├─ src/views/                # WardrobeView / AssistantView / MirrorView / CommunityView
 │  ├─ scripts/fetch-assets.mjs  # 拉取 MediaPipe 模型与 wasm
 │  └─ public/clothing/*.svg     # 12 张演示单品插画
@@ -224,6 +237,10 @@ npm run build          # vue-tsc 严格模式 + 生产构建
 | POST | `/api/auth/register` | 注册并直接登录 |
 | GET | `/api/auth/me` | 当前用户资料（需 token） |
 | POST | `/api/ai/chat/stream` | 流式对话（SSE） |
+| GET | `/api/community/posts` | 社区信息流（作者 / 单品 / 点赞状态） |
+| POST | `/api/community/posts` | 发布分享（可关联套装） |
+| POST | `/api/community/posts/{id}/like` | 点赞 / 取消点赞 |
+| DELETE | `/api/community/posts/{id}` | 删除自己的帖子 |
 | GET | `/api/ai/status` | 当前通道、工具清单、知识库规模 |
 | GET | `/api/ai/sessions` | 最近 20 个会话 |
 | GET | `/api/ai/sessions/{id}/messages` | 会话历史（含推荐 JSON 回放） |
@@ -251,7 +268,7 @@ npm run build          # vue-tsc 严格模式 + 生产构建
 - [x] **阶段一 · 建库搭架**：库表、衣橱 CRUD、统计看板、前端工作台、联调
 - [x] **阶段二 · 接入大模型**：SSE 流式、Function Calling（天气/衣橱/统计/推荐）、RAG、会话持久化、推荐卡片
 - [x] **阶段三 · 视觉进阶**：Three.js 程序化数字人、GSAP 换装过渡、MediaPipe 端侧姿态、JWT 登录
-- [ ] **阶段四 · 融合冲刺**：AI 推荐 → Pinia 驱动换装、社区发布/点赞、分享卡片、性能与体验打磨
+- [x] **阶段四 · 融合冲刺**：社区信息流 / 发帖 / 点赞、AI 推荐 → 3D 试衣联动、Canvas 分享卡片、体验打磨
 
 ---
 
@@ -268,7 +285,10 @@ npm run build          # vue-tsc 严格模式 + 生产构建
 | 3D 换装 | 12 件单品映射到 7 类壳层，点击即时替换 + GSAP 弹入，截图见 `mirror.png` |
 | MediaPipe | 本地 wasm + 5.8MB 姿态模型加载正常；摄像头不可用自动降级不影响试衣 |
 | JWT | `login → Bearer → /auth/me`、衣橱接口按 token 识别用户 |
-| 前端 `npm run build` | 通过；MirrorView 17.8 KB，three 单独分包 530 KB（gzip 132 KB），MediaPipe 动态加载 |
+| 社区接口 | 发帖（自动解析套装封面与单品）→ 点赞 / 取消（`post_like` 唯一键）→ 删除（仅本人） |
+| 联动 | `/mirror?ids=5,2,3,9` 打开即还原 4 件单品的整套穿着 |
+| 分享卡片 | Canvas 1080×1440 导出 PNG，与 AI 推荐 / 社区共用同一套单品数据 |
+| 前端 `npm run build` | 通过；MirrorView 18.2 KB，three 单独分包 530 KB（gzip 132 KB），MediaPipe 动态加载 |
 | 页面实拍 | `docs/screenshots/` 五张 |
 
 > 开发提示：Vite 监听已忽略 `*.tmpdir/`（编辑器原子写入的临时目录会导致 EBUSY）；若仍异常，删除 `node_modules/.vite` 重启。

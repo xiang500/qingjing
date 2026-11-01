@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { fetchClothingPage, fetchOutfits } from '@/api/clothing'
 import { CATEGORY_LABELS, CATEGORY_ORDER, type CategoryCode, type Clothing, type Outfit } from '@/types/clothing'
 import { MirrorScene, type GarmentInput } from '@/mirror/MirrorScene'
@@ -19,6 +20,7 @@ const cameraOpen = ref(false)
 const video = ref<HTMLVideoElement | null>(null)
 const overlay = ref<HTMLCanvasElement | null>(null)
 const { status, message, fps, start, stop } = usePoseTracker(video, overlay)
+const route = useRoute()
 
 const currentOutfit = computed(() => [...selected.values()])
 const aiOutfit = computed(() => outfits.value[0] ?? null)
@@ -93,6 +95,38 @@ function clearOutfit() {
   applyToScene()
 }
 
+/** 解析 ?ids=2,3,9 形式的搭配，供 AI 推荐卡片与社区「试穿此搭」直达 */
+function applyIds(raw: unknown) {
+  const ids = String(raw ?? '')
+    .split(',')
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  if (!ids.length) {
+    return
+  }
+  selected.clear()
+  for (const id of ids) {
+    const item = items.value.find((candidate) => candidate.id === id)
+    if (item) {
+      if (item.category === 'DRESS') {
+        selected.delete('TOP')
+        selected.delete('BOTTOM')
+      }
+      selected.set(item.category, item)
+    }
+  }
+  applyToScene()
+}
+
+watch(
+  () => route.query.ids,
+  (value) => {
+    if (value) {
+      applyIds(value)
+    }
+  },
+)
+
 async function toggleCamera() {
   cameraOpen.value = !cameraOpen.value
   if (cameraOpen.value) {
@@ -121,6 +155,9 @@ async function loadData() {
         }
       }
       applyToScene()
+    }
+    if (route.query.ids) {
+      applyIds(route.query.ids)
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '衣橱数据加载失败'

@@ -281,9 +281,9 @@ export class MirrorScene {
         shell.position.y = 1.16
         meshes.push(shell)
         for (const side of [-1, 1]) {
-          const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.068, 0.36, 18), material)
-          sleeve.position.set(side * 0.235, 1.2, 0)
-          sleeve.rotation.z = side * 0.09
+          const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.062, 0.3, 18), material)
+          sleeve.position.set(side * 0.238, 1.18, 0)
+          sleeve.rotation.z = side * 0.06
           meshes.push(sleeve)
         }
         break

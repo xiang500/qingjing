@@ -1,11 +1,46 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import type { Recommendation } from '@/types/ai'
+import { downloadShareCard } from '@/utils/shareCard'
 
 const props = defineProps<{ recommendation: Recommendation }>()
 
 const emit = defineEmits<{
   (event: 'retry'): void
 }>()
+
+const router = useRouter()
+
+function tryOn() {
+  const ids = props.recommendation.items.map((item) => item.id).join(',')
+  void router.push({ path: '/mirror', query: { ids } })
+}
+
+function share() {
+  const images = props.recommendation.items
+    .map((item) => item.imageUrl)
+    .filter((url): url is string => Boolean(url))
+    .join('|')
+  void router.push({
+    path: '/community',
+    query: {
+      publish: '1',
+      title: props.recommendation.name,
+      content: props.recommendation.reason ?? '',
+      images,
+    },
+  })
+}
+
+function saveCard() {
+  void downloadShareCard({
+    title: props.recommendation.name,
+    reason: props.recommendation.reason,
+    score: props.recommendation.score ?? undefined,
+    occasion: props.recommendation.occasion,
+    items: props.recommendation.items,
+  })
+}
 
 const scoreTone = (score: number) => {
   if (score >= 90) {
@@ -72,12 +107,17 @@ const totalWears = () => props.recommendation.items.reduce((sum, item) => sum + 
           <button type="button" class="btn-ghost !px-2.5 !py-1 !text-[10px]" @click="emit('retry')">
             换一套
           </button>
+          <button type="button" class="btn-ghost !px-2.5 !py-1 !text-[10px]" @click="saveCard">
+            存分享卡
+          </button>
           <button
             type="button"
-            class="btn-ghost !border-gold-400/30 !px-2.5 !py-1 !text-[10px] !text-gold-200 opacity-60"
-            disabled
-            title="阶段三接入 3D 换装后启用"
+            class="btn-ghost !border-gold-400/30 !px-2.5 !py-1 !text-[10px] !text-gold-200"
+            @click="share"
           >
+            分享到社区
+          </button>
+          <button type="button" class="btn-ghost !px-2.5 !py-1 !text-[10px]" @click="tryOn">
             在试衣镜试穿
           </button>
         </span>

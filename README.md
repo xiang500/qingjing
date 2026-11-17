@@ -15,11 +15,23 @@
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
 ![Node](https://img.shields.io/badge/Node-%E2%89%A518-339933?logo=node.js&logoColor=white)
 
-[主要功能](#-主要功能) · [界面预览](#-界面预览) · [快速开始](#-快速开始) · [接口](#-主要接口) · [设计文档](docs/design.md) · [参考项目](docs/references.md)
+[主要功能](#-主要功能) · [界面预览](#-界面预览) · [快速开始](#-快速开始) · [接口](#-主要接口) · [初赛反馈与优化](#-初赛反馈与优化) · [设计文档](docs/design.md) · [参考项目](docs/references.md)
 
 </div>
 
 ![数字衣橱 · 秋](docs/screenshots/wardrobe.jpg)
+
+## 🔧 初赛反馈与优化
+
+初赛 77 分，评语是「内容组织有条理，**加载体验可以再优化下**」。这一轮把反馈拆成两件事来做：
+
+| 方向 | 主要改动 | 结果 |
+| --- | --- | --- |
+| 加载体验 | 下线 Three.js + MediaPipe 姿态识别（wasm + 模型约 **33.5 MB**），改用 2D 造型板；路由全懒加载；ECharts 独立分包；演示图片统一 JPEG 压缩 | `dist` **34.8 MB → 3.16 MB**；首屏主包 gzip **≈ 69 KB**；看板 ECharts chunk gzip 191 KB 仅进看板才下载 |
+| 内容具体 | 12 件**实拍单品**（名称/品牌/价格与照片一致）、3 套带封面的套装、6 条社区真实分享、CPW 单次穿着成本、365 天穿着热力图、推荐采纳率闭环 | 见下方「主要功能」与截图 |
+
+完整对照（含每一项的验证方法）见 **[docs/optimization.md](docs/optimization.md)**。
+`3D → 2D` 是一次有数据支撑的取舍：3D 版本仍保留在提交 `qingjingTest2` 中，真·虚拟试穿列入 Roadmap。
 
 ## 📌 项目简介
 
@@ -112,8 +124,12 @@ mysql -uroot -p chuaizhibeidatabase < newbackend/db/schema.sql
 mysql -uroot -p chuaizhibeidatabase < newbackend/db/seed.sql
 ```
 
-`schema.sql` 建 11 张表；`seed.sql` 写入演示账号、12 件单品、2 套套装、12 条穿搭知识、
-1 条社区帖子与一年份穿着记录（可重复执行）。
+`schema.sql` 建 11 张表；`seed.sql` 写入演示账号（外加 3 位示例作者）、12 件实拍单品、
+3 套套装、12 条穿搭知识、6 条社区分享与一年份穿着记录（可重复执行）。
+
+> **演示图片说明**：`frontend/public/items` 与 `public/looks` 下的照片来自公开穿搭内容，
+> 仅用于本项目的界面演示与比赛展示，版权归原作者所有。要换成自己的素材，直接替换这两个目录里的
+> 同名文件、或在衣橱里上传自己的单品图即可，数据库只需改 `image_url`。
 
 ### 2. 启动后端（8080）
 

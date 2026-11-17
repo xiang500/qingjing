@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useCommunityStore } from '@/stores/community'
 import { useThemeStore } from '@/stores/theme'
+import { useAuthStore } from '@/stores/auth'
 import PostCard from '@/components/community/PostCard.vue'
 import PublishDialog from '@/components/community/PublishDialog.vue'
 import CommentsDialog from '@/components/community/CommentsDialog.vue'
@@ -11,6 +12,7 @@ import type { CommunityPost } from '@/types/community'
 
 const store = useCommunityStore()
 const theme = useThemeStore()
+const auth = useAuthStore()
 const { posts, total, page, pages, loading, error, isEmpty } = storeToRefs(store)
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +33,10 @@ function flash(message: string) {
 }
 
 function openPublish() {
+  if (!auth.isLoggedIn) {
+    ElMessage.info('请先在右上角登录，登录后再发布搭配')
+    return
+  }
   prefill.value = {}
   publishOpen.value = true
 }
@@ -79,7 +85,7 @@ onMounted(async () => {
 <template>
   <div class="page-stack">
     <!-- ============ 区块一：社区首屏 · 发布搭配 ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div class="min-w-0">
           <span class="eyebrow">{{ theme.meta.en }} · {{ theme.meta.light }} · Community</span>
@@ -114,7 +120,7 @@ onMounted(async () => {
     </section>
 
     <!-- ============ 区块二：社区脉搏 + 发布入口（独立于信息流） ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div class="min-w-0">
           <span class="eyebrow">Community Pulse</span>
@@ -152,7 +158,7 @@ onMounted(async () => {
     </section>
 
     <!-- ============ 区块三：信息流（帖子墙 / 分页） ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div class="min-w-0">
           <span class="eyebrow">Community Feed</span>

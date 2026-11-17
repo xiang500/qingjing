@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * 全局异常处理：把任何异常收敛成 Result，前端只需处理一种结构。
@@ -49,6 +50,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public Result handleMethod(HttpRequestMethodNotSupportedException ex) {
         return Result.fail(ErrorCode.BAD_REQUEST, "不支持的请求方法: " + ex.getMethod());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Result handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        log.warn("上传文件超限: {}", ex.getMessage());
+        return Result.fail(ErrorCode.BAD_REQUEST, "图片不能超过 5MB，请压缩后再上传");
     }
 
     @ExceptionHandler(Exception.class)

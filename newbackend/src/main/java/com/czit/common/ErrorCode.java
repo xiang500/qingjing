@@ -9,6 +9,8 @@ public final class ErrorCode {
     public static final int BAD_REQUEST = 40000;
     /** 未登录 / 身份失效 */
     public static final int UNAUTHORIZED = 40100;
+    /** 无权限访问（如非管理员访问管理端） */
+    public static final int FORBIDDEN = 40300;
     /** 资源不存在 */
     public static final int NOT_FOUND = 40400;
     /** 服务器内部错误 */

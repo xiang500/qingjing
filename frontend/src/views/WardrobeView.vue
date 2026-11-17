@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { RouterLink } from 'vue-router'
 import { useWardrobeStore } from '@/stores/wardrobe'
 import { useThemeStore } from '@/stores/theme'
+import { useAuthStore } from '@/stores/auth'
 import StatOverview from '@/components/StatOverview.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import ClothingCard from '@/components/ClothingCard.vue'
@@ -18,6 +19,19 @@ import { catalogImage } from '@/utils/image'
 
 const store = useWardrobeStore()
 const theme = useThemeStore()
+const auth = useAuthStore()
+
+/**
+ * 未登录时不做写操作：后端会用缺省演示账号兜底，
+ * 放任写入会把数据记到别人账号上，也容易在切换账号后串数据。
+ */
+function guardLogin(): boolean {
+  if (auth.isLoggedIn) {
+    return false
+  }
+  ElMessage.info('请先在右上角登录，登录后再管理衣橱')
+  return true
+}
 const { items, stats, categories, outfits, total, pages, loading, summaryLoading, error, filters, hasActiveFilter, isEmpty } =
   storeToRefs(store)
 
@@ -102,16 +116,25 @@ watch(
 )
 
 function openCreate() {
+  if (guardLogin()) {
+    return
+  }
   editingItem.value = null
   formOpen.value = true
 }
 
 function openEdit(item: Clothing) {
+  if (guardLogin()) {
+    return
+  }
   editingItem.value = item
   formOpen.value = true
 }
 
 async function handleSubmit(payload: ClothingPayload) {
+  if (guardLogin()) {
+    return
+  }
   submitting.value = true
   try {
     await store.save(payload, editingItem.value?.id)
@@ -125,7 +148,7 @@ async function handleSubmit(payload: ClothingPayload) {
 }
 
 async function confirmDelete() {
-  if (!pendingDelete.value) {
+  if (!pendingDelete.value || guardLogin()) {
     return
   }
   deleting.value = true
@@ -141,11 +164,17 @@ async function confirmDelete() {
 }
 
 async function handleWear(item: Clothing) {
+  if (guardLogin()) {
+    return
+  }
   await store.markWorn(item)
   flash(`已记录「${item.name}」的穿着`)
 }
 
 async function handleFavorite(item: Clothing) {
+  if (guardLogin()) {
+    return
+  }
   await store.toggleFavorite(item)
 }
 
@@ -180,7 +209,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="page-stack">
     <!-- ============ 区块一：季节宣言 · 首屏大动作 ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div class="min-w-0">
           <span class="eyebrow">{{ theme.meta.en }} · {{ theme.meta.light }} · {{ theme.meta.solarTerm }}</span>
@@ -288,7 +317,7 @@ onBeforeUnmount(() => {
     </section>
 
     <!-- ============ 区块二：衣橱一览（画廊 / 数据 / AI 推荐） ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div class="min-w-0">
           <span class="eyebrow">Wardrobe Overview</span>
@@ -367,7 +396,7 @@ onBeforeUnmount(() => {
     </section>
 
     <!-- ============ 区块三：全部单品（筛选 / 网格 / 分页） ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div class="min-w-0">
           <span class="eyebrow">The Collection</span>

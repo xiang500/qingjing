@@ -23,6 +23,7 @@ CREATE TABLE `user` (
   `weight_kg`        DECIMAL(5,1)             DEFAULT NULL   COMMENT '体重kg',
   `body_type`        VARCHAR(16)              DEFAULT NULL   COMMENT '体型 H/A/O/Y/X',
   `style_preference` JSON                    DEFAULT NULL   COMMENT '风格偏好标签数组',
+  `role`             VARCHAR(16)     NOT NULL DEFAULT 'USER'   COMMENT '角色：ADMIN 管理员 / USER 普通用户',
   `created_at`       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted`          TINYINT         NOT NULL DEFAULT 0      COMMENT '逻辑删除',

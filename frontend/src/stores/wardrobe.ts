@@ -22,6 +22,15 @@ import type {
 
 type SortKey = 'latest' | 'wearCount' | 'priceAsc' | 'priceDesc'
 
+/** 本地是否持有登录态（退出登录后不应再展示上一个账号的数据） */
+function hasSession(): boolean {
+  try {
+    return Boolean(window.localStorage.getItem('qj.token'))
+  } catch {
+    return false
+  }
+}
+
 interface Filters {
   category: CategoryCode | ''
   keyword: string
@@ -106,7 +115,29 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
   }
 
   async function init() {
+    // 未登录时不拉数据：避免后端用缺省演示账号兜底，导致"退出后还看到上一个账号的衣橱"
+    if (!hasSession()) {
+      reset()
+      return
+    }
     await Promise.all([loadSummary(), loadList()])
+  }
+
+  /** 清空所有用户数据（退出登录 / 切换账号时调用） */
+  function reset() {
+    items.value = []
+    stats.value = null
+    outfits.value = []
+    total.value = 0
+    pages.value = 0
+    error.value = ''
+    loading.value = false
+    summaryLoading.value = false
+    filters.category = ''
+    filters.keyword = ''
+    filters.favorite = false
+    filters.sort = 'latest'
+    filters.page = 1
   }
 
   async function refresh() {
@@ -207,6 +238,7 @@ export const useWardrobeStore = defineStore('wardrobe', () => {
     hasActiveFilter,
     isEmpty,
     init,
+    reset,
     refresh,
     loadList,
     loadSummary,

@@ -3,6 +3,15 @@ import { defineStore } from 'pinia'
 import { deletePost, fetchPosts, publishPost, togglePostLike } from '@/api/community'
 import type { CommunityPost, PublishPayload } from '@/types/community'
 
+/** 本地是否持有登录态 */
+function hasSession(): boolean {
+  try {
+    return Boolean(window.localStorage.getItem('qj.token'))
+  } catch {
+    return false
+  }
+}
+
 /**
  * 社区信息流状态：分页、乐观点赞、发布后回到第一页。
  */
@@ -19,6 +28,11 @@ export const useCommunityStore = defineStore('community', () => {
   const isEmpty = computed(() => !loading.value && posts.value.length === 0)
 
   async function load(target = page.value) {
+    // 未登录不拉信息流：后端会用缺省演示账号兜底，退出登录后会看到别人的帖子
+    if (!hasSession()) {
+      reset()
+      return
+    }
     loading.value = true
     error.value = ''
     try {
@@ -73,5 +87,16 @@ export const useCommunityStore = defineStore('community', () => {
     }
   }
 
-  return { posts, total, page, pages, loading, publishing, error, isEmpty, load, like, publish, remove }
+  /** 清空信息流（退出登录 / 切换账号时调用） */
+  function reset() {
+    posts.value = []
+    total.value = 0
+    page.value = 1
+    pages.value = 0
+    loading.value = false
+    publishing.value = false
+    error.value = ''
+  }
+
+  return { posts, total, page, pages, loading, publishing, error, isEmpty, load, reset, like, publish, remove }
 })

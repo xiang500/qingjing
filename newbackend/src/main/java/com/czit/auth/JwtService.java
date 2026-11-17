@@ -30,26 +30,43 @@ public class JwtService {
         this.ttl = Duration.ofHours(ttlHours);
     }
 
-    public String issue(long userId, String username) {
+    public String issue(long userId, String username, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("username", username)
+                .claim("role", normalizeRole(role))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(ttl)))
                 .signWith(key)
                 .compact();
     }
 
-    /** @return 用户 ID；token 非法或过期时返回 null */
-    public Long parseUserId(String token) {
+    /** 解析出的登录身份，role 已做 USER 兜底。 */
+    public record JwtUser(Long userId, String role) {
+    }
+
+    /** @return 登录身份；token 非法或过期时返回 null */
+    public JwtUser parse(String token) {
         try {
             Claims claims = Jwts.parser().verifyWith(key).build()
                     .parseSignedClaims(token).getPayload();
-            return Long.parseLong(claims.getSubject());
+            return new JwtUser(Long.parseLong(claims.getSubject()),
+                    normalizeRole(claims.get("role", String.class)));
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    /** @return 用户 ID；token 非法或过期时返回 null */
+    public Long parseUserId(String token) {
+        JwtUser user = parse(token);
+        return user == null ? null : user.userId();
+    }
+
+    /** 角色兜底：旧 token 没有 role claim 时按普通用户处理。 */
+    private String normalizeRole(String role) {
+        return role == null || role.isBlank() ? "USER" : role;
     }
 
     public long ttlSeconds() {

@@ -7,11 +7,13 @@ import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/compon
 import { CanvasRenderer } from 'echarts/renderers'
 import { fetchDashboard } from '@/api/dashboard'
 import { useThemeStore } from '@/stores/theme'
+import { useAuthStore } from '@/stores/auth'
 import type { CpwItem, DashboardData } from '@/types/dashboard'
 
 echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const theme = useThemeStore()
+const auth = useAuthStore()
 
 const data = ref<DashboardData | null>(null)
 const loading = ref(true)
@@ -705,6 +707,14 @@ function initCharts() {
 }
 
 async function load() {
+  // 未登录不拉数据：后端会用缺省演示账号兜底，退出登录后会看到别人的看板
+  if (!auth.isLoggedIn) {
+    data.value = null
+    error.value = ''
+    loading.value = false
+    disposeCharts()
+    return
+  }
   loading.value = true
   error.value = ''
   try {
@@ -734,6 +744,14 @@ watch(
     }
     await nextTick()
     initCharts()
+  },
+)
+
+// 登录态变化时刷新 / 清空看板
+watch(
+  () => auth.isLoggedIn,
+  async () => {
+    await load()
   },
 )
 
@@ -800,7 +818,7 @@ onBeforeUnmount(() => {
 
     <template v-if="data">
       <!-- ============ 衣橱概览：10 张概览卡，按三组错开 ============ -->
-      <section class="section-block">
+      <section v-reveal class="section-block">
         <header class="section-head">
           <div>
             <h2>衣橱概览</h2>
@@ -857,7 +875,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- ============ CPW：单次穿着成本，独立成块 ============ -->
-      <section class="section-block">
+      <section v-reveal class="section-block">
         <header class="section-head">
           <div>
             <h2>单次穿着成本 CPW</h2>
@@ -959,7 +977,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- ============ 穿着热力图：独立成块，原生 DOM，不额外引库 ============ -->
-      <section class="section-block">
+      <section v-reveal class="section-block">
         <header class="section-head">
           <div>
             <h2>穿着热力图</h2>
@@ -1039,7 +1057,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- ============ 结构与偏好：两块图表，区块内 24px ============ -->
-      <section class="section-block">
+      <section v-reveal class="section-block">
         <header class="section-head">
           <div>
             <h2>结构与偏好</h2>
@@ -1072,7 +1090,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- ============ 单品与价值：热度 / 价值 / 趋势 ============ -->
-      <section class="section-block">
+      <section v-reveal class="section-block">
         <header class="section-head">
           <div>
             <h2>单品与价值</h2>
@@ -1118,11 +1136,25 @@ onBeforeUnmount(() => {
       </p>
     </template>
 
-    <div v-else class="grid gap-[var(--space-5)] lg:grid-cols-2">
+    <div v-else-if="loading" class="grid gap-[var(--space-5)] lg:grid-cols-2">
       <div v-for="index in 4" :key="index" class="glass-soft h-72 p-[var(--space-5)]">
         <div class="skeleton h-3.5 w-1/4 rounded-full" />
         <div class="skeleton mt-[var(--space-5)] h-52 w-full rounded-xl" />
       </div>
+    </div>
+
+    <!-- 未登录：不展示任何人的数据，只给登录引导 -->
+    <div v-else class="glass flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <span class="grid size-12 place-items-center rounded-full border border-ink-700/60 text-mist-500">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M4 19h16M7 19V9l5-4 5 4v10" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M10 19v-4h4v4" stroke-linecap="round" />
+        </svg>
+      </span>
+      <p class="text-sm font-medium text-mist-200">登录后查看你的衣橱数据</p>
+      <p class="max-w-sm text-[11px] leading-relaxed text-mist-500">
+        单次穿着成本、365 天穿着热力图、推荐采纳率，都来自当前账号的真实记录。
+      </p>
     </div>
   </div>
 </template>

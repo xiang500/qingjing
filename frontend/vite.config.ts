@@ -44,12 +44,15 @@ export default defineConfig({
       // 编辑器原子写入产生的临时目录会让文件监听锁死（EBUSY），直接忽略
       ignored: ['**/*.tmpdir/**', '**/.*.tmp', '**/.mysql/**'],
     },
-    proxy: {
-      // 开发期直连 Spring Boot，避免 CORS 干扰
-      '/api': {
-        target: 'http://127.0.0.1:8080',
-        changeOrigin: true,
-      },
-    },
+    proxy: (() => {
+      // 允许用环境变量指向别的后端实例（联调 / 多版本对比时方便）
+      const target = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8080'
+      return {
+        // 开发期直连 Spring Boot，避免 CORS 干扰
+        '/api': { target, changeOrigin: true },
+        // 上传的图片由后端静态映射提供，dev 下也要代理，否则会落到 SPA 的 index.html
+        '/uploads': { target, changeOrigin: true },
+      }
+    })(),
   },
 })

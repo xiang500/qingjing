@@ -28,21 +28,6 @@ const props = withDefaults(
   },
 )
 
-const DEMO_ITEMS: GalleryItem[] = [
-  { id: 1, name: '基础款纯棉白T恤', categoryLabel: '上装', colorHex: '#F3F1EA', imageUrl: '/clothing/1.svg', meta: 'MUJI · 纯棉', wearCount: 42 },
-  { id: 2, name: '雾霾蓝宽松衬衫', categoryLabel: '上装', colorHex: '#8CA3B8', imageUrl: '/clothing/2.svg', meta: 'COS · 天丝棉', wearCount: 18 },
-  { id: 3, name: '直筒水洗牛仔裤', categoryLabel: '下装', colorHex: '#4B6584', imageUrl: '/clothing/3.svg', meta: "Levi's · 牛仔", wearCount: 63 },
-  { id: 4, name: '燕麦色针织开衫', categoryLabel: '外套', colorHex: '#D8C9B0', imageUrl: '/clothing/4.svg', meta: 'Uniqlo · 羊毛混纺', wearCount: 27 },
-  { id: 5, name: '黑色垫肩西装外套', categoryLabel: '外套', colorHex: '#1F1F1F', imageUrl: '/clothing/5.svg', meta: 'Theory · 羊毛', wearCount: 12 },
-  { id: 6, name: '米白垂坠伞裙', categoryLabel: '下装', colorHex: '#EAE3D8', imageUrl: '/clothing/6.svg', meta: 'MAX&Co. · 醋酸', wearCount: 0 },
-  { id: 7, name: '黑色缎面小礼服', categoryLabel: '连衣裙', colorHex: '#141414', imageUrl: '/clothing/7.svg', meta: 'ZARA · 缎面', wearCount: 3 },
-  { id: 8, name: '小白鞋帆布鞋', categoryLabel: '鞋履', colorHex: '#F0F0F0', imageUrl: '/clothing/8.svg', meta: 'Converse · 帆布', wearCount: 55 },
-  { id: 9, name: '焦糖色乐福鞋', categoryLabel: '鞋履', colorHex: '#8B5E3C', imageUrl: '/clothing/9.svg', meta: 'Clarks · 牛皮', wearCount: 21 },
-  { id: 10, name: '卡其色长风衣', categoryLabel: '外套', colorHex: '#C3A57E', imageUrl: '/clothing/10.svg', meta: 'Burberry · 棉质华达呢', wearCount: 15 },
-  { id: 11, name: '手工编织托特包', categoryLabel: '包袋', colorHex: '#C9A96A', imageUrl: '/clothing/11.svg', meta: 'LOEWE · 草编', wearCount: 8 },
-  { id: 12, name: '细链金色项链', categoryLabel: '配饰', colorHex: '#D9C07A', imageUrl: '/clothing/12.svg', meta: 'APM · 925银镀金', wearCount: 33 },
-]
-
 const index = ref(0)
 /** 悬停 / 按住圆点时暂停，避免用户想细看却被切走 */
 const paused = ref(false)
@@ -51,7 +36,7 @@ const radius = ref(2)
 const reduceMotion = ref(false)
 let timer: number | undefined
 
-const source = computed<GalleryItem[]>(() => (props.items.length ? props.items : DEMO_ITEMS))
+const source = computed<GalleryItem[]>(() => props.items)
 const count = computed(() => source.value.length)
 
 const counter = computed(
@@ -148,10 +133,10 @@ onBeforeUnmount(() => {
           <p class="eyebrow">{{ label }}</p>
           <h2 class="display mt-2 text-lg text-mist-100 sm:text-xl">
             {{ title }}
-            <span class="ml-2 text-[11px] tracking-normal text-mist-500">悬停暂停 · 点两侧卡片切换</span>
+            <span v-if="count" class="ml-2 text-[11px] tracking-normal text-mist-500">悬停暂停 · 点两侧卡片切换</span>
           </h2>
         </div>
-        <div class="flex items-center gap-2">
+        <div v-if="count" class="flex items-center gap-2">
           <span class="text-[11px] tabular-nums tracking-[0.18em] text-mist-500">{{ counter }}</span>
           <button
             type="button"
@@ -177,6 +162,7 @@ onBeforeUnmount(() => {
       </header>
 
       <div
+        v-if="count"
         class="relative mt-1 h-[clamp(19rem,33vw,26rem)] [perspective:1400px]"
         @mouseenter="paused = true"
         @mouseleave="paused = false"
@@ -242,8 +228,25 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
+      <!-- 空态：衣橱还没有单品时，不显示任何照片，只给引导 -->
+      <div
+        v-else
+        class="mt-3 flex h-[clamp(13rem,22vw,18rem)] flex-col items-center justify-center gap-3 rounded-[var(--radius-md)] border border-dashed border-ink-700/60 px-6 text-center"
+      >
+        <span class="grid size-11 place-items-center rounded-full border border-ink-700/60 text-mist-500">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 19h16M7 19V9l5-4 5 4v10" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M10 19v-4h4v4" stroke-linecap="round" />
+          </svg>
+        </span>
+        <p class="text-sm font-medium text-mist-200">画廊还空着</p>
+        <p class="max-w-xs text-[11px] leading-relaxed text-mist-500">
+          录入第一件单品后，它会出现在这条旋转画廊里。
+        </p>
+      </div>
+
       <!-- 圆点：选择任意一件，当前那张会转到中间 -->
-      <div class="mt-2 flex items-center justify-center gap-1.5">
+      <div v-if="count" class="mt-2 flex items-center justify-center gap-1.5">
         <button
           v-for="(item, i) in source"
           :key="item.id"

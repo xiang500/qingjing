@@ -32,9 +32,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
-            Long userId = jwtService.parseUserId(header.substring(7).trim());
-            if (userId != null) {
-                UserContext.set(userId);
+            JwtService.JwtUser user = jwtService.parse(header.substring(7).trim());
+            if (user != null) {
+                UserContext.set(user.userId(), user.role());
             }
         }
         try {

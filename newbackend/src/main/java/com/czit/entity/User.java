@@ -27,6 +27,8 @@ public class User {
     private BigDecimal weightKg;
     private String bodyType;
     private String stylePreference;
+    /** 角色：ADMIN 管理员 / USER 普通用户 */
+    private String role;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     @TableLogic
@@ -110,6 +112,14 @@ public class User {
 
     public void setStylePreference(String stylePreference) {
         this.stylePreference = stylePreference;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public LocalDateTime getCreatedAt() {

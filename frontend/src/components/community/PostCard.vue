@@ -185,8 +185,8 @@ const createdText = computed(() => {
 
         <button
           type="button"
-          class="chip px-2.5 py-1 text-[10px] tracking-[0.04em] disabled:cursor-not-allowed disabled:opacity-40"
-          :disabled="!canTryOn"
+          class="chip px-2.5 py-1 text-[10px] tracking-[0.04em]"
+          :class="canTryOn ? 'hover:border-gold-300/50' : 'opacity-70'"
           @click="emit('tryOn', post.itemIds)"
         >
           试穿此搭

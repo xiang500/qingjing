@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => Boolean(token.value))
   const displayName = computed(() => user.value?.nickname || user.value?.username || '演示账号')
+  /** 管理后台入口与路由守卫都看这个 */
+  const isAdmin = computed(() => user.value?.role === 'ADMIN')
 
   function persist(sessionToken: string | null) {
     token.value = sessionToken
@@ -92,6 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isLoggedIn,
     displayName,
+    isAdmin,
     login,
     register,
     restore,

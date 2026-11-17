@@ -1,29 +1,71 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import LoginDialog from '@/components/LoginDialog.vue'
 import SeasonBackdrop from '@/components/SeasonBackdrop.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { useWardrobeStore } from '@/stores/wardrobe'
+import { useCommunityStore } from '@/stores/community'
+import { useAssistantStore } from '@/stores/assistant'
 import { SEASON_AUTOPLAY_MS } from '@/theme/seasons'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const theme = useThemeStore()
+const wardrobe = useWardrobeStore()
+const community = useCommunityStore()
+const assistant = useAssistantStore()
 const loginOpen = ref(false)
 
-const tabs = [
-  { name: 'wardrobe', to: '/', label: '数字衣橱', en: 'Wardrobe' },
-  { name: 'assistant', to: '/assistant', label: 'AI 顾问', en: 'Advisor' },
-  { name: 'mirror', to: '/mirror', label: '搭配工作台', en: 'Studio' },
-  { name: 'community', to: '/community', label: '灵感社区', en: 'Community' },
-  { name: 'stats', to: '/stats', label: '数据看板', en: 'Insights' },
-  { name: 'admin', to: '/admin', label: '管理后台', en: 'Admin' },
-]
+const tabs = computed(() => {
+  const base = [
+    { name: 'wardrobe', to: '/', label: '数字衣橱', en: 'Wardrobe' },
+    { name: 'mirror', to: '/mirror', label: '搭配工作台', en: 'Studio' },
+    { name: 'assistant', to: '/assistant', label: 'AI 顾问', en: 'Advisor' },
+    { name: 'community', to: '/community', label: '灵感社区', en: 'Community' },
+    { name: 'stats', to: '/stats', label: '数据看板', en: 'Insights' },
+    { name: 'profile', to: '/profile', label: '个人中心', en: 'Profile' },
+  ]
+  // 管理后台只对管理员可见，普通用户看不到入口
+  return auth.isAdmin
+    ? [...base, { name: 'admin', to: '/admin', label: '管理后台', en: 'Admin' }]
+    : base
+})
 
 const activeName = computed(() => route.name)
 const autoplaySeconds = Math.round(SEASON_AUTOPLAY_MS / 1000)
+
+/**
+ * 登录态变化（登录 / 退出 / 切换账号）时统一处理：
+ * - 退出：清空所有用户数据，并回到默认首页（衣橱空态，画廊不显示照片）
+ * - 登录：重新拉取当前账号的衣橱、社区与会话，不需要手动刷新页面
+ */
+watch(
+  () => auth.token,
+  async (token, previous) => {
+    if (token === previous) {
+      return
+    }
+    if (token) {
+      await Promise.all([
+        wardrobe.init(),
+        community.load(1),
+        assistant.loadStatus(),
+        assistant.loadSessions(),
+      ])
+      return
+    }
+    wardrobe.reset()
+    community.reset()
+    assistant.reset()
+    if (route.path !== '/') {
+      void router.push('/')
+    }
+  },
+)
 
 onMounted(() => {
   void auth.restore()
@@ -109,7 +151,12 @@ onBeforeUnmount(() => {
                 >
                   登录
                 </button>
-                <RouterLink v-else to="/profile" class="login-btn">个人中心</RouterLink>
+                <span
+                  v-if="auth.isLoggedIn && auth.isAdmin"
+                  class="rounded-full border border-gold-300/40 bg-gold-300/10 px-2 py-0.5 text-[10px] text-gold-200"
+                >
+                  管理员
+                </span>
                 <button
                   v-if="auth.isLoggedIn"
                   type="button"

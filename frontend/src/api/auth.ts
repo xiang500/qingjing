@@ -2,6 +2,8 @@ export interface AuthUser {
   id: number
   username: string
   nickname: string
+  /** ADMIN 管理员 / USER 普通用户；旧后端没有该字段时按普通用户处理 */
+  role?: 'ADMIN' | 'USER' | string
   avatarUrl?: string | null
   gender?: number
   heightCm?: number

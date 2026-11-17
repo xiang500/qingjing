@@ -790,7 +790,41 @@ html[data-scheme='light'] {
 }
 
 /* ============================================================
- * 6. 动效偏好
+ * 6. 滚动显现（v-reveal）
+ *    - 进入视口：淡入 + 上移 16px
+ *    - once:false 时离开视口淡出并复位
+ * ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-y, 16px), 0);
+  transition:
+    opacity 0.62s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.62s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.reveal-out {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-y, 16px), 0);
+}
+
+/* 动效关闭后不再留过渡，避免出现"永远不显示" */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-out {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ============================================================
+ * 7. 动效偏好
  * ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   *,

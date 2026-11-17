@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   createKnowledge,
@@ -13,8 +13,10 @@ import {
   type KnowledgeChunk,
 } from '@/api/admin'
 import { useThemeStore } from '@/stores/theme'
+import { useAuthStore } from '@/stores/auth'
 
 const theme = useThemeStore()
+const auth = useAuthStore()
 
 const overview = ref<AdminOverview | null>(null)
 const users = ref<AdminUser[]>([])
@@ -40,6 +42,15 @@ const overviewCards = [
 ] as const
 
 async function loadAll() {
+  // 未登录不拉管理数据（后端会用缺省演示账号兜底）
+  if (!auth.isLoggedIn) {
+    overview.value = null
+    users.value = []
+    knowledge.value = []
+    error.value = ''
+    loading.value = false
+    return
+  }
   loading.value = true
   error.value = ''
   try {
@@ -137,6 +148,13 @@ function genderText(gender?: number | null) {
   return '未设置'
 }
 
+watch(
+  () => auth.isLoggedIn,
+  async () => {
+    await loadAll()
+  },
+)
+
 onMounted(loadAll)
 </script>
 
@@ -182,7 +200,7 @@ onMounted(loadAll)
     </div>
 
     <!-- ============ 平台概览：7 张小卡，网格排开不挤成一条 ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div>
           <h2>平台概览</h2>
@@ -226,16 +244,24 @@ onMounted(loadAll)
       </div>
 
       <!-- 首次加载：用骨架板占住同样的网格，避免区块高度跳一下 -->
-      <div v-else class="grid grid-cols-2 gap-[var(--space-3)] sm:grid-cols-4 sm:gap-[var(--space-4)]">
+      <div v-else-if="loading" class="grid grid-cols-2 gap-[var(--space-3)] sm:grid-cols-4 sm:gap-[var(--space-4)]">
         <div v-for="index in 7" :key="index" class="glass-soft h-[5.5rem] px-[var(--space-4)] py-[var(--space-3)]">
           <div class="skeleton h-2.5 w-1/2 rounded-full" />
           <div class="skeleton mt-[var(--space-3)] h-6 w-2/3 rounded-md" />
         </div>
       </div>
+
+      <!-- 未登录：不展示平台数据 -->
+      <div v-else class="glass flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+        <p class="text-sm font-medium text-mist-200">登录后查看平台数据</p>
+        <p class="max-w-sm text-[11px] leading-relaxed text-mist-500">
+          知识库、注册用户与全局数据量只对已登录账号开放，登录后这里会自动加载。
+        </p>
+      </div>
     </section>
 
     <!-- ============ 知识库：表格 + 新增主操作 ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div>
           <h2>知识库</h2>
@@ -312,7 +338,7 @@ onMounted(loadAll)
     </section>
 
     <!-- ============ 注册用户：表格只读，计数即操作区 ============ -->
-    <section class="section-block">
+    <section v-reveal class="section-block">
       <header class="section-head">
         <div>
           <h2>注册用户</h2>

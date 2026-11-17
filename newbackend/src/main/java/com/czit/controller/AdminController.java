@@ -3,6 +3,7 @@ package com.czit.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.czit.common.JsonUtils;
 import com.czit.common.Result;
+import com.czit.common.UserContext;
 import com.czit.entity.User;
 import com.czit.mapper.AiRecommendationMapper;
 import com.czit.mapper.ChatSessionMapper;
@@ -20,7 +21,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 管理端只读接口：全局概览与用户列表（演示用，未做严格 RBAC）。
+ * 管理端只读接口：全局概览与用户列表。所有 /api/admin/** 接口仅 ADMIN 可访问。
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -39,6 +40,7 @@ public class AdminController {
     public record AdminUser(
             Long id,
             String username,
+            String role,
             String nickname,
             Integer gender,
             BigDecimal heightCm,
@@ -74,6 +76,7 @@ public class AdminController {
 
     @GetMapping("/overview")
     public Result overview() {
+        UserContext.requireAdmin();
         return Result.ok(new AdminOverview(
                 userMapper.selectCount(null),
                 clothingMapper.selectCount(null),
@@ -86,6 +89,7 @@ public class AdminController {
 
     @GetMapping("/users")
     public Result users() {
+        UserContext.requireAdmin();
         List<AdminUser> list = userMapper.selectList(new LambdaQueryWrapper<User>()
                         .orderByDesc(User::getId)
                         .last("limit 50"))
@@ -93,6 +97,7 @@ public class AdminController {
                 .map(user -> new AdminUser(
                         user.getId(),
                         user.getUsername(),
+                        roleOf(user),
                         user.getNickname(),
                         user.getGender(),
                         user.getHeightCm(),
@@ -102,5 +107,11 @@ public class AdminController {
                         user.getCreatedAt()))
                 .toList();
         return Result.ok(list);
+    }
+
+    /** 角色兜底：历史数据或空值时按普通用户处理。 */
+    private String roleOf(User user) {
+        String role = user.getRole();
+        return role == null || role.isBlank() ? UserContext.ROLE_USER : role;
     }
 }

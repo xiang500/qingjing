@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 /**
  * 路由全部懒加载：首屏只加载衣橱主视图，
@@ -47,11 +48,27 @@ const router = createRouter({
       path: '/admin',
       name: 'admin',
       component: () => import('@/views/AdminView.vue'),
-      meta: { title: '管理后台' },
+      meta: { title: '管理后台', requiresAdmin: true },
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
   scrollBehavior: () => ({ top: 0 }),
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAdmin) {
+    return true
+  }
+  const auth = useAuthStore()
+  // 刷新页面后 user 还没拉回来，先 restore 一次再判断
+  if (auth.token && !auth.user) {
+    await auth.restore()
+  }
+  if (auth.isAdmin) {
+    return true
+  }
+  ElMessage.warning('管理后台仅管理员可访问')
+  return { path: '/' }
 })
 
 router.afterEach((to) => {

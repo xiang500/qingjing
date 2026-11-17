@@ -23,10 +23,10 @@ DELETE FROM `knowledge_chunk`;
 
 
 -- 演示用户
-INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`)
+INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `role`)
 VALUES (1, 'demo', '$2b$10$dXFU1y7F0wLyA/HooFOF6u2mi9wBHLmgy3h9vljpoSgylK9.aaJdW', '轻境体验官', 2, 165.0, 52.0, 'A',
-        JSON_ARRAY('通勤', '法式', '简约'))
-ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`);
+        JSON_ARRAY('通勤', '法式', '简约'), 'ADMIN')
+ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `role` = VALUES(`role`);
 
 -- 衣橱单品
 INSERT INTO `clothing`
@@ -124,17 +124,17 @@ WHERE (multi.k = 1 OR MOD(CRC32(CONCAT('extra-', worn_day)), 100) < 12)
 SET NAMES utf8mb4;
 
 -- ---------- 1. 三位示例作者（密码与 demo 相同：123456） ----------
-INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `created_at`, `updated_at`, `deleted`)
-SELECT 3, 'lin', u.`password`, '林一', NULL, 1, 178.0, 68.0, 'H', JSON_ARRAY('简约', '通勤', '街头'), NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
-ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`);
+INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `role`, `created_at`, `updated_at`, `deleted`)
+SELECT 3, 'lin', u.`password`, '林一', NULL, 1, 178.0, 68.0, 'H', JSON_ARRAY('简约', '通勤', '街头'), 'USER', NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
+ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`), `role` = VALUES(`role`);
 
-INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `created_at`, `updated_at`, `deleted`)
-SELECT 4, 'xiaoyu', u.`password`, '小鱼', NULL, 2, 163.0, 48.0, 'A', JSON_ARRAY('甜美', '学院', '叠穿'), NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
-ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`);
+INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `role`, `created_at`, `updated_at`, `deleted`)
+SELECT 4, 'xiaoyu', u.`password`, '小鱼', NULL, 2, 163.0, 48.0, 'A', JSON_ARRAY('甜美', '学院', '叠穿'), 'USER', NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
+ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`), `role` = VALUES(`role`);
 
-INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `created_at`, `updated_at`, `deleted`)
-SELECT 5, 'amu', u.`password`, '阿木', NULL, 1, 182.0, 74.0, 'Y', JSON_ARRAY('工装', '复古', '宽松'), NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
-ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`);
+INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `role`, `created_at`, `updated_at`, `deleted`)
+SELECT 5, 'amu', u.`password`, '阿木', NULL, 1, 182.0, 74.0, 'Y', JSON_ARRAY('工装', '复古', '宽松'), 'USER', NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
+ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`), `role` = VALUES(`role`);
 
 -- ---------- 2. 十二件真实单品 ----------
 UPDATE `clothing` SET `name` = '基础款纯棉白T恤', `category` = 'TOP', `sub_category` = 'T恤',
@@ -255,3 +255,24 @@ UPDATE `post` SET `outfit_id` = 1 WHERE `id` = 1;
 
 -- ---------- 5. 修正历史计数 ----------
 UPDATE `post` SET `comment_count` = (SELECT COUNT(*) FROM `comment` c WHERE c.`post_id` = `post`.`id`) WHERE `id` IN (1, 2, 3, 4, 5, 6);
+
+-- ---------- 6. 给每条分享补一套关联套装，让「试穿此搭」全部可点 ----------
+DELETE FROM `outfit` WHERE `id` IN (5, 6, 7, 8, 9);
+
+INSERT INTO `outfit` (`id`, `user_id`, `name`, `cover_url`, `occasion`, `season`, `item_ids`, `score`, `ai_generated`, `ai_reason`) VALUES
+(5, 1, '灰绿卫衣户外', '/looks/look-grey-hoodie.jpg', '休闲', 'AUTUMN', JSON_ARRAY(4, 8, 11), 84, 1,
+ '大面积素色压住豹纹包，全身只有两个色域，松垮廓形配大包比例刚好。'),
+(6, 1, '学院风百褶', '/looks/look-polo-sweatshirt.jpg', '约会', 'AUTUMN', JSON_ARRAY(5, 9, 12), 86, 1,
+ '格纹翻领 + 百褶裙，裙长在膝上一点，比例被拉出来；银色粗链是唯一亮点。'),
+(7, 1, '蓝调针织约会', '/looks/look-blue-cardigan.jpg', '约会', 'AUTUMN', JSON_ARRAY(6, 10, 12), 88, 1,
+ '牛仔蓝开衫配米白阔腿裤，冷调上衣 + 暖调下装，饱和度都不高，松弛感足。'),
+(8, 1, '做旧衬衫叠穿', '/looks/look-bleached-shirt.jpg', '休闲', 'AUTUMN', JSON_ARRAY(2, 1, 8), 82, 1,
+ '衬衫不扣、内叠白 T，同色系工装裤收住，整体像刚从工作室出来。'),
+(9, 1, '双面呢通勤', '/looks/look-grey-coats.jpg', '通勤', 'WINTER', JSON_ARRAY(7, 3, 10), 90, 1,
+ '长大衣 + 黑高领 + 米白阔腿裤，全身三个明度层次，通勤很稳。');
+
+UPDATE `post` SET `outfit_id` = 5 WHERE `id` = 2;
+UPDATE `post` SET `outfit_id` = 6 WHERE `id` = 3;
+UPDATE `post` SET `outfit_id` = 7 WHERE `id` = 4;
+UPDATE `post` SET `outfit_id` = 8 WHERE `id` = 5;
+UPDATE `post` SET `outfit_id` = 9 WHERE `id` = 6;

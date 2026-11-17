@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchClothingPage, fetchOutfits } from '@/api/clothing'
 import { streamChat } from '@/api/ai'
@@ -14,9 +14,11 @@ import {
 import StyleBoard from '@/components/styling/StyleBoard.vue'
 import { evaluatePalette } from '@/utils/palette'
 import { useThemeStore } from '@/stores/theme'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const theme = useThemeStore()
+const auth = useAuthStore()
 
 const items = ref<Clothing[]>([])
 const outfits = ref<Outfit[]>([])
@@ -80,6 +82,10 @@ const palette = computed(() => evaluatePalette(currentOutfit.value))
 const saving = ref(false)
 
 async function saveOutfit() {
+  if (!auth.isLoggedIn) {
+    ElMessage.info('请先在右上角登录，登录后再保存套装')
+    return
+  }
   if (!currentOutfit.value.length) {
     ElMessage.warning('先在画板上放几件单品，再保存套装')
     return
@@ -353,6 +359,12 @@ function clearCustom() {
 // ---------------------------------------------------------------------------
 
 async function loadData() {
+  // 未登录不拉数据：后端会用缺省演示账号兜底，退出登录后会看到上一个账号的衣橱
+  if (!auth.isLoggedIn) {
+    clearBoard()
+    loading.value = false
+    return
+  }
   loading.value = true
   error.value = ''
   try {
@@ -380,6 +392,34 @@ async function loadData() {
   }
 }
 
+/** 清空画板与本地加载的数据（退出登录 / 切换账号时调用） */
+function clearBoard() {
+  selected.clear()
+  items.value = []
+  outfits.value = []
+  customGarment.value = null
+  activeCategory.value = ''
+  review.value = ''
+  reviewError.value = ''
+  error.value = ''
+}
+
+/**
+ * 登录态变化时同步工作台：
+ * - 退出：清空画板，回到空板引导
+ * - 登录：重新拉当前账号的衣橱与套装
+ */
+watch(
+  () => auth.isLoggedIn,
+  async (loggedIn) => {
+    if (!loggedIn) {
+      clearBoard()
+      return
+    }
+    await loadData()
+  },
+)
+
 onMounted(async () => {
   await loadData()
   const tryon = route.query.tryon
@@ -401,7 +441,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-6 sm:space-y-8">
     <!-- ============ 页头：工作台宣言 + 主操作 ============ -->
-    <section class="flex flex-col gap-6 pt-1 lg:flex-row lg:items-end lg:justify-between">
+    <section v-reveal class="flex flex-col gap-6 pt-1 lg:flex-row lg:items-end lg:justify-between">
       <div class="max-w-2xl">
         <p class="eyebrow">Studio · Look Board</p>
         <h1 class="display mt-4 text-[clamp(2.1rem,4vw,3.4rem)] leading-[1.15] text-mist-100">
@@ -437,10 +477,10 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-      <div class="space-y-4">
+    <div class="grid gap-5 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+      <div class="order-1 space-y-4 lg:order-2">
         <!-- ============ 造型板：一块 4:5 的编辑纸面 ============ -->
-        <section class="relative">
+        <section v-reveal class="relative">
           <div class="mx-auto flex w-full max-w-[42rem] flex-wrap items-end justify-between gap-2 px-1 pb-3.5">
             <div class="flex items-center gap-3">
               <p class="eyebrow">Editorial Board</p>
@@ -581,7 +621,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- ============ 右栏：AI 套装 / 上传 / 单品选择器 ============ -->
-      <aside class="space-y-4">
+      <aside class="order-2 space-y-4 lg:order-1">
         <!-- AI 套装 -->
         <section v-if="aiOutfit" class="glass-soft p-5">
           <div class="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.28em] text-mist-500">
@@ -616,7 +656,7 @@ onBeforeUnmount(() => {
         </section>
 
         <!-- 上传我的衣服 -->
-        <section class="glass-soft p-5">
+        <section v-reveal class="glass-soft p-5">
           <div class="flex items-start justify-between gap-2">
             <div>
               <p class="eyebrow">Upload</p>

@@ -124,7 +124,7 @@ async function save() {
     <div v-else class="grid gap-[var(--space-5)] lg:grid-cols-[19.5rem_minmax(0,1fr)] lg:items-start">
       <!-- 左栏：资料概览 + 隐私说明，桌面端依次下沉 16px -->
       <div class="staggered min-w-0">
-        <section class="section-block">
+        <section v-reveal class="section-block">
           <header class="section-head">
             <div>
               <h2>资料概览</h2>
@@ -173,7 +173,7 @@ async function save() {
           </div>
         </section>
 
-        <section class="section-block">
+        <section v-reveal class="section-block">
           <header class="section-head">
             <div>
               <h2>隐私说明</h2>
@@ -191,7 +191,7 @@ async function save() {
       </div>
 
       <!-- 右栏：基础资料表单 -->
-      <section class="section-block min-w-0">
+      <section v-reveal class="section-block min-w-0">
         <header class="section-head">
           <div>
             <h2>基础资料</h2>

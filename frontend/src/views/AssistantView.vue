@@ -4,11 +4,13 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useAssistantStore } from '@/stores/assistant'
 import { useThemeStore } from '@/stores/theme'
+import { useAuthStore } from '@/stores/auth'
 import ThinkingTrace from '@/components/ai/ThinkingTrace.vue'
 import RecommendationCard from '@/components/ai/RecommendationCard.vue'
 import type { ChatSession } from '@/types/ai'
 
 const store = useAssistantStore()
+const auth = useAuthStore()
 const { messages, sessions, steps, provider, sending, error, hasMessages } = storeToRefs(store)
 const theme = useThemeStore()
 const route = useRoute()
@@ -53,6 +55,10 @@ watch(
 async function submit(text?: string) {
   const content = (text ?? draft.value).trim()
   if (!content || sending.value) {
+    return
+  }
+  if (!auth.isLoggedIn) {
+    ElMessage.info('请先在右上角登录，登录后 AI 才能读取你的衣橱')
     return
   }
   draft.value = ''

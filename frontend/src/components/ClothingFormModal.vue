@@ -44,6 +44,11 @@ async function pickImage(event: Event) {
   if (!file) {
     return
   }
+  // 后端上限 5MB，这里先拦一道，避免上传后才报错
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error(`图片有 ${(file.size / 1024 / 1024).toFixed(1)}MB，超过 5MB 上限，请压缩后再上传`)
+    return
+  }
   uploadingImage.value = true
   try {
     form.imageUrl = await uploadImage(file)

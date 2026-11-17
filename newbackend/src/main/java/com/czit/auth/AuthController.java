@@ -54,7 +54,7 @@ public class AuthController {
             @Size(max = 32, message = "长度不能超过 32") String nickname) {
     }
 
-    public record Profile(Long id, String username, String nickname, String avatarUrl, Integer gender,
+    public record Profile(Long id, String username, String role, String nickname, String avatarUrl, Integer gender,
                           BigDecimal heightCm, BigDecimal weightKg, String bodyType,
                           List<String> stylePreference) {
     }
@@ -96,6 +96,8 @@ public class AuthController {
         user.setNickname(request.nickname() == null || request.nickname().isBlank()
                 ? username : request.nickname().trim());
         user.setGender(0);
+        // 新注册账号一律为普通用户
+        user.setRole(UserContext.ROLE_USER);
         user.setDeleted(0);
         userMapper.insert(user);
         return Result.ok(session(user));
@@ -146,16 +148,23 @@ public class AuthController {
     }
 
     private Map<String, Object> session(User user) {
+        String role = roleOf(user);
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("token", jwtService.issue(user.getId(), user.getUsername()));
+        body.put("token", jwtService.issue(user.getId(), user.getUsername(), role));
         body.put("expiresIn", jwtService.ttlSeconds());
         body.put("user", profile(user));
         return body;
     }
 
     private Profile profile(User user) {
-        return new Profile(user.getId(), user.getUsername(), user.getNickname(), user.getAvatarUrl(),
+        return new Profile(user.getId(), user.getUsername(), roleOf(user), user.getNickname(), user.getAvatarUrl(),
                 user.getGender(), user.getHeightCm(), user.getWeightKg(), user.getBodyType(),
                 JsonUtils.parseStringList(user.getStylePreference()));
+    }
+
+    /** 角色兜底：历史数据或空值时按普通用户处理。 */
+    private String roleOf(User user) {
+        String role = user.getRole();
+        return role == null || role.isBlank() ? UserContext.ROLE_USER : role;
     }
 }

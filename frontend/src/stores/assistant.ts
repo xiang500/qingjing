@@ -3,6 +3,15 @@ import { defineStore } from 'pinia'
 import { fetchAiStatus, fetchChatMessages, fetchChatSessions, renameChatSession, streamChat } from '@/api/ai'
 import type { ChatMessage, ChatSession, ThinkingStep } from '@/types/ai'
 
+/** 本地是否持有登录态 */
+function hasSession(): boolean {
+  try {
+    return Boolean(window.localStorage.getItem('qj.token'))
+  } catch {
+    return false
+  }
+}
+
 /**
  * AI 顾问状态机：消息流、思考步骤、会话切换与中断。
  * 流式增量直接写进最后一条 assistant 消息，避免整表替换造成的重渲染。
@@ -31,6 +40,9 @@ export const useAssistantStore = defineStore('assistant', () => {
   })
 
   async function loadStatus() {
+    if (!hasSession()) {
+      return
+    }
     try {
       const status = await fetchAiStatus()
       provider.value = status.provider
@@ -40,6 +52,10 @@ export const useAssistantStore = defineStore('assistant', () => {
   }
 
   async function loadSessions() {
+    if (!hasSession()) {
+      sessions.value = []
+      return
+    }
     try {
       sessions.value = await fetchChatSessions()
     } catch {
@@ -162,6 +178,19 @@ export const useAssistantStore = defineStore('assistant', () => {
     }
   }
 
+  /** 清空会话与消息（退出登录 / 切换账号时调用） */
+  function reset() {
+    controller?.abort()
+    controller = null
+    messages.value = []
+    sessions.value = []
+    sessionId.value = undefined
+    steps.value = []
+    provider.value = ''
+    sending.value = false
+    error.value = ''
+  }
+
   return {
     messages,
     sessions,
@@ -180,5 +209,6 @@ export const useAssistantStore = defineStore('assistant', () => {
     stop,
     retry,
     renameSession,
+    reset,
   }
 })

@@ -1,6 +1,13 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { fetchMe, login as loginApi, register as registerApi, type AuthUser } from '@/api/auth'
+import {
+  fetchMe,
+  login as loginApi,
+  register as registerApi,
+  updateProfile as updateProfileApi,
+  type AuthUser,
+  type ProfilePayload,
+} from '@/api/auth'
 
 const TOKEN_KEY = 'qj.token'
 
@@ -71,5 +78,24 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
-  return { token, user, loading, error, isLoggedIn, displayName, login, register, restore, logout }
+  /** 保存个人资料：身高/体重/体型/风格偏好会作为 AI 推荐的输入 */
+  async function saveProfile(payload: ProfilePayload) {
+    const updated = await updateProfileApi(payload)
+    user.value = updated
+    return updated
+  }
+
+  return {
+    token,
+    user,
+    loading,
+    error,
+    isLoggedIn,
+    displayName,
+    login,
+    register,
+    restore,
+    logout,
+    saveProfile,
+  }
 })

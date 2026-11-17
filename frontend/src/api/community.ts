@@ -1,5 +1,5 @@
 import { request } from './http'
-import type { CommunityPost, PublishPayload } from '@/types/community'
+import type { CommunityPost, PostComment, PublishPayload } from '@/types/community'
 import type { PageResult } from '@/types/clothing'
 
 export function fetchPosts(page = 1, size = 12) {
@@ -23,4 +23,20 @@ export function togglePostLike(id: number) {
 
 export function deletePost(id: number) {
   return request<void>({ url: `/community/posts/${id}`, method: 'DELETE' })
+}
+
+export function fetchComments(postId: number) {
+  return request<PostComment[]>({ url: `/community/posts/${postId}/comments`, method: 'GET' })
+}
+
+export function addComment(postId: number, content: string) {
+  return request<PostComment>({
+    url: `/community/posts/${postId}/comments`,
+    method: 'POST',
+    data: { content },
+  })
+}
+
+export function deleteComment(commentId: number) {
+  return request<void>({ url: `/community/comments/${commentId}`, method: 'DELETE' })
 }

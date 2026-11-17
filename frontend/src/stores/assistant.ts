@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { fetchAiStatus, fetchChatMessages, fetchChatSessions, streamChat } from '@/api/ai'
+import { fetchAiStatus, fetchChatMessages, fetchChatSessions, renameChatSession, streamChat } from '@/api/ai'
 import type { ChatMessage, ChatSession, ThinkingStep } from '@/types/ai'
 
 /**
@@ -144,6 +144,24 @@ export const useAssistantStore = defineStore('assistant', () => {
     sending.value = false
   }
 
+  /** 重试上一条用户消息（出错时使用） */
+  async function retry() {
+    const question = lastUserMessage.value
+    if (!question || sending.value) {
+      return
+    }
+    await send(question)
+  }
+
+  /** 重命名会话，成功后同步侧栏标题 */
+  async function renameSession(id: number, title: string) {
+    await renameChatSession(id, title)
+    const target = sessions.value.find((session) => session.id === id)
+    if (target) {
+      target.title = title
+    }
+  }
+
   return {
     messages,
     sessions,
@@ -160,5 +178,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     newSession,
     send,
     stop,
+    retry,
+    renameSession,
   }
 })

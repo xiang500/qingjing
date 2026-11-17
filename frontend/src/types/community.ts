@@ -26,3 +26,14 @@ export interface PublishPayload {
   tags?: string[]
   images?: string[]
 }
+
+export interface PostComment {
+  id: number
+  postId: number
+  userId: number
+  content: string
+  authorName: string
+  authorAvatar?: string | null
+  mine: boolean
+  createdAt: string
+}

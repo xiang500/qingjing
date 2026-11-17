@@ -1,121 +1,362 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import LoginDialog from '@/components/LoginDialog.vue'
+import SeasonBackdrop from '@/components/SeasonBackdrop.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
+import { SEASON_AUTOPLAY_MS } from '@/theme/seasons'
 
 const route = useRoute()
 const auth = useAuthStore()
+const theme = useThemeStore()
 const loginOpen = ref(false)
 
 const tabs = [
   { name: 'wardrobe', to: '/', label: '数字衣橱', en: 'Wardrobe' },
-  { name: 'assistant', to: '/assistant', label: 'AI 顾问', en: 'Assistant' },
-  { name: 'mirror', to: '/mirror', label: '实时试衣镜', en: 'Mirror' },
+  { name: 'assistant', to: '/assistant', label: 'AI 顾问', en: 'Advisor' },
+  { name: 'mirror', to: '/mirror', label: '搭配工作台', en: 'Studio' },
   { name: 'community', to: '/community', label: '灵感社区', en: 'Community' },
+  { name: 'stats', to: '/stats', label: '数据看板', en: 'Insights' },
+  { name: 'admin', to: '/admin', label: '管理后台', en: 'Admin' },
 ]
 
 const activeName = computed(() => route.name)
+const autoplaySeconds = Math.round(SEASON_AUTOPLAY_MS / 1000)
 
 onMounted(() => {
   void auth.restore()
+  // 四季自动轮播：每 30 秒换一季，不需要用户点按钮
+  theme.startAutoPlay()
+})
+
+onBeforeUnmount(() => {
+  theme.stopAutoPlay()
 })
 </script>
 
 <template>
-  <div class="relative flex min-h-screen flex-col">
-    <header
-      class="sticky top-0 z-30 border-b border-white/10 bg-ink-950/70 backdrop-blur-xl"
-    >
-      <div class="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-5 sm:px-8">
-        <RouterLink to="/" class="group flex items-center gap-3">
-          <span
-            class="relative grid size-9 place-items-center rounded-full border border-gold-400/50 text-gold-300"
-          >
-            <span class="font-display text-sm leading-none">轻</span>
-            <span
-              class="absolute inset-0 rounded-full border border-gold-400/20 transition-transform duration-500 group-hover:scale-110"
-            />
-          </span>
-          <span class="hidden flex-col leading-tight sm:flex">
-            <span class="font-display text-base tracking-[0.22em] text-mist-100">轻境</span>
-            <span class="text-[10px] uppercase tracking-[0.32em] text-mist-500">Lightness AI</span>
-          </span>
-        </RouterLink>
+  <el-config-provider :locale="zhCn">
+    <div class="relative flex min-h-screen flex-col">
+      <SeasonBackdrop />
 
-        <nav class="ml-2 flex items-center gap-1 overflow-x-auto">
-          <RouterLink
-            v-for="tab in tabs"
-            :key="tab.name"
-            :to="tab.to"
-            class="group relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-colors"
-            :class="
-              activeName === tab.name
-                ? 'bg-white/10 text-gold-200'
-                : 'text-mist-300 hover:bg-white/5 hover:text-mist-100'
-            "
+      <header class="sticky top-0 z-40 pt-3 sm:pt-4">
+        <div class="mx-auto w-full max-w-[86rem] px-4 sm:px-6">
+          <div
+            class="glass flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-[1.35rem] px-3 py-2 sm:flex-nowrap sm:gap-3 sm:rounded-full sm:pl-4 sm:pr-2"
           >
-            <span>{{ tab.label }}</span>
-            <span class="hidden text-[10px] uppercase tracking-[0.2em] text-mist-500 lg:inline">
-              {{ tab.en }}
-            </span>
-          </RouterLink>
-        </nav>
+            <RouterLink to="/" class="group flex shrink-0 items-center gap-2.5" aria-label="轻境首页">
+              <span class="seal">
+                <span class="font-display text-sm leading-none">轻</span>
+              </span>
+              <span class="hidden flex-col leading-none whitespace-nowrap md:flex">
+                <span class="font-display text-[15px] tracking-[0.24em] text-mist-100">轻境</span>
+                <span class="mt-1 text-[8px] uppercase tracking-[0.34em] text-mist-500">
+                  Lightness AI
+                </span>
+              </span>
+            </RouterLink>
 
-        <div class="ml-auto flex items-center gap-3">
-          <span
-            class="hidden items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] text-emerald-200 md:inline-flex"
-          >
-            <span class="size-1.5 animate-pulse rounded-full bg-emerald-300" />
-            阶段三 · 3D 试衣
-          </span>
-          <div class="flex items-center gap-2 rounded-full border border-white/10 py-1 pl-1 pr-1.5">
-            <span
-              class="grid size-7 place-items-center rounded-full bg-gradient-to-br from-gold-300 to-gold-500 text-xs font-semibold text-ink-950"
+            <nav
+              class="order-3 -mx-1 flex w-full min-w-0 items-center gap-0.5 overflow-x-auto px-1 py-0.5 sm:order-none sm:mx-0 sm:w-auto sm:px-0"
             >
-              {{ auth.isLoggedIn ? auth.displayName.slice(0, 1) : '轻' }}
-            </span>
-            <span class="max-w-[6rem] truncate text-xs text-mist-300">
-              {{ auth.isLoggedIn ? auth.displayName : '演示账号' }}
-            </span>
-            <button
-              v-if="!auth.isLoggedIn"
-              type="button"
-              class="rounded-full border border-gold-400/40 px-2.5 py-1 text-[11px] text-gold-200 transition-colors hover:bg-gold-400/10"
-              @click="loginOpen = true"
-            >
-              登录
-            </button>
-            <button
-              v-else
-              type="button"
-              class="rounded-full px-2 py-1 text-[11px] text-mist-500 transition-colors hover:text-mist-200"
-              @click="auth.logout()"
-            >
-              退出
-            </button>
+              <RouterLink
+                v-for="tab in tabs"
+                :key="tab.name"
+                :to="tab.to"
+                class="nav-link"
+                :class="{ 'nav-link-on': activeName === tab.name }"
+              >
+                <span>{{ tab.label }}</span>
+                <span class="hidden text-[9px] uppercase tracking-[0.18em] opacity-60 2xl:inline">
+                  {{ tab.en }}
+                </span>
+              </RouterLink>
+            </nav>
+
+            <div class="ml-auto flex shrink-0 items-center gap-2">
+              <!-- 季节自动轮播指示（纯展示，不可点击）：进度条走完就换下一季 -->
+              <span
+                class="season-badge"
+                :title="`四季自动轮播：每 ${autoplaySeconds} 秒换一季 · 当前 ${theme.meta.label} · ${theme.meta.name}（${theme.meta.light}）`"
+              >
+                <span class="season-dot" aria-hidden="true" />
+                <span class="season-badge-label">
+                  {{ theme.meta.label }} · {{ theme.meta.name }}
+                </span>
+                <span class="season-bar" aria-hidden="true">
+                  <span
+                    :key="theme.season"
+                    class="season-bar-fill"
+                    :style="{ animationDuration: `${SEASON_AUTOPLAY_MS}ms` }"
+                  />
+                </span>
+              </span>
+
+              <div class="flex items-center gap-1.5 rounded-full p-0.5">
+                <span class="avatar-badge">
+                  {{ auth.isLoggedIn ? auth.displayName.slice(0, 1) : '轻' }}
+                </span>
+                <span class="hidden max-w-[5.5rem] truncate text-[11px] text-mist-300 sm:inline">
+                  {{ auth.isLoggedIn ? auth.displayName : '演示账号' }}
+                </span>
+                <button
+                  v-if="!auth.isLoggedIn"
+                  type="button"
+                  class="login-btn"
+                  @click="loginOpen = true"
+                >
+                  登录
+                </button>
+                <RouterLink v-else to="/profile" class="login-btn">个人中心</RouterLink>
+                <button
+                  v-if="auth.isLoggedIn"
+                  type="button"
+                  class="px-1.5 py-1 text-[11px] text-mist-500 transition-colors hover:text-mist-200"
+                  @click="auth.logout()"
+                >
+                  退出
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <main class="mx-auto w-full max-w-7xl flex-1 px-5 pb-24 pt-8 sm:px-8">
-      <RouterView v-slot="{ Component }">
-        <Transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </Transition>
-      </RouterView>
-    </main>
+      <main class="mx-auto w-full max-w-[86rem] flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
+        <RouterView v-slot="{ Component }">
+          <Transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
+      </main>
 
-    <footer class="border-t border-white/5 py-6">
-      <div
-        class="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-2 px-5 text-[11px] text-mist-500 sm:flex-row sm:px-8"
-      >
-        <span>轻境 · AI 实时穿搭与 3D 数字衣橱系统</span>
-        <span>端侧视觉推理 · 云端 Agent 编排 · 浏览器实时渲染</span>
-      </div>
-    </footer>
+      <footer class="relative border-t border-ink-700/40 py-6">
+        <div
+          class="mx-auto flex w-full max-w-[86rem] flex-col items-center justify-between gap-2 px-5 text-[11px] text-mist-500 sm:flex-row sm:px-6"
+        >
+          <span class="flex items-center gap-2">
+            <span class="font-display tracking-[0.2em] text-mist-400">轻境</span>
+            <span class="opacity-60">·</span>
+            AI 实时穿搭与数字衣橱系统
+          </span>
+          <span class="flex items-center gap-3">
+            <span>{{ theme.meta.label }} · {{ theme.meta.light }}（{{ theme.meta.name }}）</span>
+            <span class="hidden opacity-60 sm:inline">端侧视觉推理 · 云端 Agent 编排 · 浏览器实时渲染</span>
+          </span>
+        </div>
+      </footer>
 
-    <LoginDialog :open="loginOpen" @close="loginOpen = false" />
-  </div>
+      <LoginDialog :open="loginOpen" @close="loginOpen = false" />
+    </div>
+  </el-config-provider>
 </template>
+
+<style scoped>
+.seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: none;
+  border-radius: 50%;
+  color: #fff;
+  background: radial-gradient(
+    120% 120% at 30% 20%,
+    color-mix(in oklab, var(--c-accent) 72%, white),
+    var(--c-accent)
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 55%, transparent),
+    0 6px 16px -8px color-mix(in oklab, var(--c-accent) 80%, transparent);
+  transition: transform 0.4s ease;
+}
+
+.seal::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--c-accent) 32%, transparent);
+  transition: transform 0.5s ease;
+}
+
+.group:hover .seal {
+  transform: scale(1.04);
+}
+
+.group:hover .seal::after {
+  transform: scale(1.14);
+  opacity: 0.5;
+}
+
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.48rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--c-ink-3);
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--c-ink);
+  background: color-mix(in oklab, var(--c-glass-a) 55%, transparent);
+}
+
+.nav-link-on {
+  color: var(--c-ink);
+  background: color-mix(in oklab, var(--c-glass-a) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 65%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--c-line-strong) 40%, transparent),
+    0 8px 18px -16px var(--c-glass-shadow);
+}
+
+.avatar-badge {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--c-accent-ink);
+  background: linear-gradient(
+    140deg,
+    color-mix(in oklab, var(--c-accent) 78%, white),
+    var(--c-accent)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 12px -8px var(--c-glass-shadow);
+}
+
+.login-btn {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.32rem 0.6rem;
+  font-family: inherit;
+  font-size: 0.68rem;
+  color: var(--c-ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.login-btn:hover {
+  color: var(--c-accent-strong);
+  background: color-mix(in oklab, var(--c-accent) 12%, transparent);
+}
+
+@media (max-width: 640px) {
+  .nav-link {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* ---------- 季节自动轮播指示（不可点击） ---------- */
+.season-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--c-line) 100%, transparent);
+  background: color-mix(in oklab, var(--c-glass-a) 55%, transparent);
+  color: var(--c-ink-3);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.season-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--c-accent);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-accent) 55%, transparent);
+  animation: season-pulse 2.4s ease-out infinite;
+}
+
+.season-badge-label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--c-accent-strong);
+}
+
+.season-bar {
+  position: relative;
+  width: 2.5rem;
+  height: 3px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--c-ink) 14%, transparent);
+}
+
+.season-bar-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--c-accent) 55%, transparent),
+    var(--c-accent)
+  );
+  animation-name: season-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes season-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes season-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-accent) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (max-width: 640px) {
+  .season-badge {
+    padding: 0.26rem 0.5rem;
+    gap: 0.34rem;
+  }
+
+  .season-badge-label {
+    display: none;
+  }
+
+  .season-bar {
+    width: 1.8rem;
+  }
+}
+</style>

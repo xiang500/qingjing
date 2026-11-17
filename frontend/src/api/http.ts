@@ -1,9 +1,10 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
 
-/** 后端统一响应结构 */
+/** 后端统一响应结构（Result：code / msg / data；兼容旧字段 message） */
 interface ApiResult<T> {
   code: number
-  message: string
+  msg?: string
+  message?: string
   data: T
 }
 
@@ -41,7 +42,7 @@ client.interceptors.response.use(
   (error: AxiosError<ApiResult<unknown>>) => {
     const body = error.response?.data
     if (body && typeof body.code === 'number' && body.code !== 0) {
-      return Promise.reject(new ApiError(body.message, body.code))
+      return Promise.reject(new ApiError(body.msg ?? body.message ?? '请求失败', body.code))
     }
     if (error.code === 'ECONNABORTED') {
       return Promise.reject(new ApiError('请求超时，请检查后端服务是否已启动', -1))
@@ -55,7 +56,7 @@ export async function request<T>(config: AxiosRequestConfig): Promise<T> {
   const response = await client.request<ApiResult<T>>(config)
   const body = response.data
   if (body.code !== 0) {
-    throw new ApiError(body.message, body.code)
+    throw new ApiError(body.msg ?? body.message ?? '请求失败', body.code)
   }
   return body.data
 }

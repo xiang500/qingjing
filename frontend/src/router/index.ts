@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 /**
  * 路由全部懒加载：首屏只加载衣橱主视图，
- * Three.js / MediaPipe 等重依赖会随「试衣镜」路由按需加载。
+ * 看板（ECharts）、工作台、社区等重页面按需下载，弱网下也能先看到内容。
  */
 const router = createRouter({
   history: createWebHistory(),
@@ -23,13 +23,31 @@ const router = createRouter({
       path: '/mirror',
       name: 'mirror',
       component: () => import('@/views/MirrorView.vue'),
-      meta: { title: '实时试衣镜' },
+      meta: { title: '搭配工作台' },
     },
     {
       path: '/community',
       name: 'community',
       component: () => import('@/views/CommunityView.vue'),
       meta: { title: '灵感社区' },
+    },
+    {
+      path: '/stats',
+      name: 'stats',
+      component: () => import('@/views/StatsView.vue'),
+      meta: { title: '数据看板' },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/ProfileView.vue'),
+      meta: { title: '个人中心' },
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: { title: '管理后台' },
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

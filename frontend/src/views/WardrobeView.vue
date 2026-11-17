@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { RouterLink } from 'vue-router'
 import { useWardrobeStore } from '@/stores/wardrobe'
+import { useThemeStore } from '@/stores/theme'
 import StatOverview from '@/components/StatOverview.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import ClothingCard from '@/components/ClothingCard.vue'
@@ -9,9 +11,13 @@ import SkeletonGrid from '@/components/SkeletonGrid.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import ClothingFormModal from '@/components/ClothingFormModal.vue'
+import RotatingGallery from '@/components/RotatingGallery.vue'
 import type { CategoryCode, Clothing, ClothingPayload } from '@/types/clothing'
+import type { GalleryItem } from '@/types/gallery'
+import { catalogImage } from '@/utils/image'
 
 const store = useWardrobeStore()
+const theme = useThemeStore()
 const { items, stats, categories, outfits, total, pages, loading, summaryLoading, error, filters, hasActiveFilter, isEmpty } =
   storeToRefs(store)
 
@@ -27,6 +33,41 @@ const keywordModel = ref(filters.value.keyword)
 let searchTimer: number | undefined
 
 const heroOutfit = computed(() => outfits.value[0] ?? null)
+
+/** 当前季节在衣橱里的单品数（按后端返回的 season 编码统计） */
+const seasonCount = computed(() => {
+  const code = theme.meta.key.toUpperCase()
+  return items.value.filter((item) => item.season.includes(code)).length
+})
+
+/** 今日推荐套装里的单品缩略图，最多取 3 件 */
+const outfitThumbs = computed(() => {
+  if (!heroOutfit.value) {
+    return []
+  }
+  return heroOutfit.value.itemIds
+    .map((id) => items.value.find((item) => item.id === id))
+    .filter((item): item is Clothing => Boolean(item?.imageUrl))
+    .slice(0, 3)
+    .map((item) => catalogImage(item.imageUrl))
+})
+
+const yearLabel = computed(() => new Date().getFullYear())
+
+/** 旋转画廊卡片：优先用衣橱真实单品；没有数据时组件内部会退化为演示卡片 */
+const galleryItems = computed<GalleryItem[]>(() =>
+  items.value
+    .filter((item) => item.imageUrl)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      imageUrl: item.imageUrl,
+      categoryLabel: item.categoryLabel,
+      colorHex: item.colorHex,
+      meta: [item.brand, item.subCategory ?? item.material].filter(Boolean).join(' · '),
+      wearCount: item.wearCount,
+    })),
+)
 
 const pageNumbers = computed(() => {
   const totalPages = Math.max(1, pages.value)
@@ -137,169 +178,298 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-      <div class="max-w-2xl">
-        <p class="text-[11px] uppercase tracking-[0.4em] text-gold-400/80">Wardrobe Overview</p>
-        <h1 class="mt-2 font-display text-3xl leading-tight text-mist-100 sm:text-4xl">
-          把衣橱搬进浏览器，
-          <span class="text-gold-200">让每一件都被看见</span>
-        </h1>
-        <p class="mt-3 text-sm leading-relaxed text-mist-500">
-          记录单品、统计穿着、沉淀风格标签。这些数据会成为下一阶段 AI 穿搭建议与 3D 换装的输入。
-        </p>
-      </div>
+  <div class="page-stack">
+    <!-- ============ 区块一：季节宣言 · 首屏大动作 ============ -->
+    <section class="section-block">
+      <header class="section-head">
+        <div class="min-w-0">
+          <span class="eyebrow">{{ theme.meta.en }} · {{ theme.meta.light }} · {{ theme.meta.solarTerm }}</span>
+          <h1 class="display mt-4 text-[clamp(2.15rem,4.4vw,3.6rem)] leading-[1.14] text-mist-100">
+            {{ theme.meta.headline[0] }}<br />
+            <span class="accent-text">{{ theme.meta.headline[1] }}</span>
+          </h1>
+          <p class="mt-5 max-w-[36rem] text-[13px] leading-[1.95] text-mist-400 sm:text-sm">
+            {{ theme.meta.lede }}
+          </p>
+        </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <button type="button" class="btn-ghost" :disabled="loading" @click="store.refresh()">
-          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <path d="M20 12a8 8 0 1 1-2.3-5.6" stroke-linecap="round" />
-            <path d="M20 4v4h-4" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          刷新
-        </button>
-        <button type="button" class="btn-primary" @click="openCreate">
-          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-          </svg>
-          录入单品
-        </button>
+        <!-- 首屏大动作：亮底主按钮在前，次动作统一压暗 -->
+        <div class="action-row">
+          <button type="button" class="btn-primary" @click="openCreate">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+            </svg>
+            录入单品
+          </button>
+          <RouterLink
+            :to="{ path: '/assistant', query: { q: '帮我按现在的季节搭一套今天能穿的' } }"
+            class="btn-ghost"
+          >
+            让 AI 帮我搭一套
+            <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </RouterLink>
+        </div>
+      </header>
+
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-stretch lg:gap-5">
+        <!-- 今日推荐：信息性内容压进下沉面板，与右侧玻璃色卡形成明暗对比 -->
+        <div class="surface-sunken order-2 flex flex-col justify-between gap-5 p-5 sm:p-6 lg:order-1">
+          <div class="min-w-0">
+            <p class="text-[10px] uppercase tracking-[0.3em] text-mist-500">Today's Pick</p>
+            <template v-if="heroOutfit">
+              <h2 class="display mt-2 text-xl text-mist-100">{{ heroOutfit.name }}</h2>
+              <p class="mt-2 max-w-[42rem] text-xs leading-[1.9] text-mist-400">{{ heroOutfit.aiReason }}</p>
+            </template>
+            <p v-else class="mt-2 text-xs leading-relaxed text-mist-500">
+              先录入几件单品，轻境会在这里给出今天的整套建议。
+            </p>
+          </div>
+
+          <div v-if="heroOutfit" class="flex flex-wrap items-center gap-3">
+            <div class="flex gap-2">
+              <span
+                v-for="(thumb, index) in outfitThumbs"
+                :key="index"
+                class="photo-tile block size-16 shrink-0 rounded-[var(--radius-sm)]"
+              >
+                <img :src="thumb" :alt="heroOutfit.itemNames[index] ?? ''" class="size-full object-contain p-2" />
+              </span>
+              <RouterLink
+                :to="{ path: '/assistant', query: { q: `参考「${heroOutfit.name}」，再帮我搭一套今天能穿的` } }"
+                class="grid size-16 shrink-0 place-items-center rounded-[var(--radius-sm)] border border-dashed border-ink-700/70 text-mist-500 transition-colors hover:border-gold-300/60 hover:text-gold-200"
+                aria-label="让 AI 再搭一套"
+              >
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </RouterLink>
+            </div>
+            <div class="action-row ml-auto">
+              <RouterLink
+                :to="{ path: '/mirror', query: { ids: heroOutfit.itemIds.join(',') } }"
+                class="btn-ghost"
+              >
+                试穿这套
+              </RouterLink>
+            </div>
+          </div>
+        </div>
+
+        <!-- 季节色卡：本季配色 + 关键词 -->
+        <aside class="glass order-1 flex flex-col gap-4 p-5 sm:p-6 lg:order-2">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-[10px] uppercase tracking-[0.32em] text-mist-500">Season Palette</p>
+              <h2 class="display mt-2 text-xl text-mist-100">
+                {{ theme.meta.label }} · {{ theme.meta.name }}
+                <span class="text-[11px] tracking-[0.18em] text-mist-500">{{ yearLabel }}</span>
+              </h2>
+            </div>
+            <span class="season-pill">{{ seasonCount }} 件本季单品</span>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2">
+            <div v-for="swatch in theme.meta.swatches" :key="swatch.name">
+              <span
+                class="block h-11 rounded-[var(--radius-xs)] ring-1 ring-inset ring-black/10"
+                :style="{ background: swatch.hex }"
+              />
+              <p class="mt-2 text-[10px] tracking-[0.06em] text-mist-500">{{ swatch.name }}</p>
+            </div>
+          </div>
+
+          <div class="mt-auto flex flex-wrap gap-2 border-t border-ink-700/50 pt-4">
+            <span v-for="tag in theme.meta.tags" :key="tag" class="chip cursor-default">{{ tag }}</span>
+          </div>
+        </aside>
       </div>
     </section>
 
-    <StatOverview :stats="stats" :categories="categories" :loading="summaryLoading" />
+    <!-- ============ 区块二：衣橱一览（画廊 / 数据 / AI 推荐） ============ -->
+    <section class="section-block">
+      <header class="section-head">
+        <div class="min-w-0">
+          <span class="eyebrow">Wardrobe Overview</span>
+          <h2>衣橱一览</h2>
+          <p>旋转画廊看陈列，数据概览看结构，AI 推荐看今天穿什么。</p>
+        </div>
+        <div class="action-row">
+          <button
+            type="button"
+            class="btn-ghost"
+            :disabled="loading"
+            aria-label="刷新衣橱"
+            title="刷新衣橱"
+            @click="store.refresh()"
+          >
+            <svg
+              class="size-4"
+              :class="{ 'animate-spin': loading }"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+            >
+              <path d="M20 12a8 8 0 1 1-2.3-5.6" stroke-linecap="round" />
+              <path d="M20 4v4h-4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            刷新衣橱
+          </button>
+        </div>
+      </header>
 
-    <section
-      v-if="heroOutfit"
-      class="glass-card relative overflow-hidden p-5 sm:p-6"
-    >
-      <span class="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-gold-400/10 blur-3xl" />
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-gold-300">
-            <span class="inline-flex size-1.5 rounded-full bg-gold-300" />
-            AI 套装推荐
-            <span v-if="heroOutfit.score != null" class="rounded-full border border-gold-400/30 px-2 py-0.5 text-[10px] text-gold-200">
+      <!-- 同级三块依次错开，形成节奏 -->
+      <div class="staggered">
+        <RotatingGallery :items="galleryItems" title="本季衣橱" label="Wardrobe Gallery" />
+
+        <StatOverview :stats="stats" :categories="categories" :loading="summaryLoading" />
+
+        <section v-if="heroOutfit" class="glass relative overflow-hidden p-5 sm:p-6">
+          <span
+            class="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-gold-300/70 to-transparent"
+          />
+          <header class="section-head">
+            <div class="min-w-0">
+              <span class="eyebrow">AI Outfit Pick</span>
+              <h2>{{ heroOutfit.name }}</h2>
+              <p class="line-clamp-2">{{ heroOutfit.aiReason }}</p>
+            </div>
+            <div class="action-row">
+              <RouterLink
+                :to="{ path: '/mirror', query: { ids: heroOutfit.itemIds.join(',') } }"
+                class="btn-primary"
+              >
+                在工作台试穿
+              </RouterLink>
+              <RouterLink
+                :to="{ path: '/assistant', query: { q: `参考「${heroOutfit.name}」，再帮我搭一套今天能穿的通勤搭配` } }"
+                class="btn-ghost"
+              >
+                让 AI 再搭一套
+                <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </RouterLink>
+            </div>
+          </header>
+          <div class="flex flex-wrap items-center gap-2">
+            <span v-if="heroOutfit.score != null" class="chip cursor-default text-gold-200">
               匹配度 {{ heroOutfit.score }}
             </span>
-          </div>
-          <h2 class="mt-2 font-display text-xl text-mist-100">{{ heroOutfit.name }}</h2>
-          <p class="mt-1 line-clamp-2 text-sm text-mist-500">{{ heroOutfit.aiReason }}</p>
-          <div class="mt-3 flex flex-wrap gap-1.5">
-            <span
-              v-for="name in heroOutfit.itemNames"
-              :key="name"
-              class="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-mist-300"
-            >
+            <span v-for="name in heroOutfit.itemNames" :key="name" class="chip cursor-default">
               {{ name }}
             </span>
           </div>
-        </div>
-        <RouterLink
-          :to="{ path: '/assistant', query: { q: `参考「${heroOutfit.name}」，再帮我搭一套今天能穿的通勤搭配` } }"
-          class="btn-ghost shrink-0 self-start lg:self-center"
-        >
-          让 AI 再搭一套
-          <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </RouterLink>
+        </section>
       </div>
     </section>
 
-    <FilterBar
-      :categories="categories"
-      :category="filters.category"
-      :keyword="keywordModel"
-      :favorite="filters.favorite"
-      :sort="filters.sort"
-      :total="total"
-      :has-active-filter="hasActiveFilter"
-      @update:category="changeCategory"
-      @update:keyword="(value) => (keywordModel = value)"
-      @update:favorite="changeFavorite"
-      @update:sort="changeSort"
-      @reset="resetFilters"
-    />
+    <!-- ============ 区块三：全部单品（筛选 / 网格 / 分页） ============ -->
+    <section class="section-block">
+      <header class="section-head">
+        <div class="min-w-0">
+          <span class="eyebrow">The Collection</span>
+          <h2>全部单品</h2>
+          <p>按品类、穿着频率与价格筛选；点开任意一件，可以记录穿着、收藏或修改信息。</p>
+        </div>
+      </header>
 
-    <div
-      v-if="error"
-      class="flex items-start gap-3 rounded-2xl border border-rose-400/25 bg-rose-400/8 px-4 py-3 text-sm text-rose-100"
-    >
-      <svg class="mt-0.5 size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 8v5M12 16h.01" stroke-linecap="round" />
-      </svg>
-      <div class="flex-1">
-        <p class="font-medium">衣橱数据加载失败</p>
-        <p class="mt-0.5 text-xs text-rose-200/80">{{ error }}（请确认 Spring Boot 已在 8080 端口启动）</p>
-      </div>
-      <button type="button" class="text-xs text-rose-200 underline-offset-4 hover:underline" @click="store.loadList()">
-        重试
-      </button>
-    </div>
-
-    <SkeletonGrid v-if="loading && items.length === 0" />
-
-    <TransitionGroup
-      v-else-if="items.length"
-      tag="div"
-      name="fade"
-      class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4"
-    >
-      <ClothingCard
-        v-for="item in items"
-        :key="item.id"
-        :item="item"
-        @favorite="handleFavorite(item)"
-        @wear="handleWear(item)"
-        @edit="openEdit(item)"
-        @remove="pendingDelete = item"
+      <FilterBar
+        :categories="categories"
+        :category="filters.category"
+        :keyword="keywordModel"
+        :favorite="filters.favorite"
+        :sort="filters.sort"
+        :total="total"
+        :has-active-filter="hasActiveFilter"
+        @update:category="changeCategory"
+        @update:keyword="(value) => (keywordModel = value)"
+        @update:favorite="changeFavorite"
+        @update:sort="changeSort"
+        @reset="resetFilters"
       />
-    </TransitionGroup>
 
-    <EmptyState
-      v-else-if="isEmpty"
-      :title="hasActiveFilter ? '没有匹配的单品' : '衣橱还是空的'"
-      :description="
-        hasActiveFilter
-          ? '试试更换分类、清空关键词，或取消「仅看收藏」。'
-          : '录入第一件单品，轻境就能开始为你计算穿搭组合与衣橱利用率。'
-      "
-      :action-label="hasActiveFilter ? '清空筛选' : '录入第一件单品'"
-      @action="hasActiveFilter ? resetFilters() : openCreate()"
-    />
+      <div
+        v-if="error"
+        class="flex items-start gap-3 rounded-[var(--radius-md)] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200"
+      >
+        <svg class="mt-1 size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v5M12 16h.01" stroke-linecap="round" />
+        </svg>
+        <div class="flex-1">
+          <p class="font-medium">衣橱数据加载失败</p>
+          <p class="mt-1 text-xs text-rose-200/80">{{ error }}（请确认 Spring Boot 已在 8080 端口启动）</p>
+        </div>
+        <button type="button" class="text-xs text-rose-100 underline-offset-4 hover:underline" @click="store.loadList()">
+          重试
+        </button>
+      </div>
 
-    <nav v-if="pages > 1" class="flex items-center justify-center gap-2 pt-2">
-      <button
-        type="button"
-        class="chip"
-        :disabled="filters.page <= 1"
-        :class="{ 'opacity-40': filters.page <= 1 }"
-        @click="store.goToPage(filters.page - 1)"
+      <SkeletonGrid v-if="loading && items.length === 0" />
+
+      <TransitionGroup
+        v-else-if="items.length"
+        tag="div"
+        name="fade"
+        class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4"
       >
-        上一页
-      </button>
-      <button
-        v-for="page in pageNumbers"
-        :key="page"
-        type="button"
-        class="chip min-w-9 justify-center"
-        :class="{ 'chip-active': page === filters.page }"
-        @click="store.goToPage(page)"
-      >
-        {{ page }}
-      </button>
-      <button
-        type="button"
-        class="chip"
-        :disabled="filters.page >= pages"
-        :class="{ 'opacity-40': filters.page >= pages }"
-        @click="store.goToPage(filters.page + 1)"
-      >
-        下一页
-      </button>
-    </nav>
+        <ClothingCard
+          v-for="item in items"
+          :key="item.id"
+          :item="item"
+          @favorite="handleFavorite(item)"
+          @wear="handleWear(item)"
+          @edit="openEdit(item)"
+          @remove="pendingDelete = item"
+        />
+      </TransitionGroup>
+
+      <EmptyState
+        v-else-if="isEmpty"
+        :title="hasActiveFilter ? '没有匹配的单品' : '衣橱还是空的'"
+        :description="
+          hasActiveFilter
+            ? '试试更换分类、清空关键词，或取消「仅看收藏」。'
+            : '录入第一件单品，轻境就能开始为你计算穿搭组合与衣橱利用率。'
+        "
+        :action-label="hasActiveFilter ? '清空筛选' : '录入第一件单品'"
+        @action="hasActiveFilter ? resetFilters() : openCreate()"
+      />
+
+      <nav v-if="pages > 1" class="flex items-center justify-center gap-2">
+        <button
+          type="button"
+          class="chip"
+          :disabled="filters.page <= 1"
+          :class="{ 'opacity-40': filters.page <= 1 }"
+          @click="store.goToPage(filters.page - 1)"
+        >
+          上一页
+        </button>
+        <button
+          v-for="page in pageNumbers"
+          :key="page"
+          type="button"
+          class="chip min-w-9 justify-center"
+          :class="{ 'chip-active': page === filters.page }"
+          @click="store.goToPage(page)"
+        >
+          {{ page }}
+        </button>
+        <button
+          type="button"
+          class="chip"
+          :disabled="filters.page >= pages"
+          :class="{ 'opacity-40': filters.page >= pages }"
+          @click="store.goToPage(filters.page + 1)"
+        >
+          下一页
+        </button>
+      </nav>
+    </section>
 
     <ClothingFormModal
       :open="formOpen"
@@ -324,12 +494,7 @@ onBeforeUnmount(() => {
       <template #footer>
         <div class="flex justify-end gap-2">
           <button type="button" class="btn-ghost" @click="pendingDelete = null">再想想</button>
-          <button
-            type="button"
-            class="btn-primary"
-            :disabled="deleting"
-            @click="confirmDelete"
-          >
+          <button type="button" class="btn-primary" :disabled="deleting" @click="confirmDelete">
             {{ deleting ? '移除中…' : '确认移除' }}
           </button>
         </div>
@@ -339,7 +504,7 @@ onBeforeUnmount(() => {
     <Transition name="fade">
       <div
         v-if="notice"
-        class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-gold-400/30 bg-ink-900/95 px-5 py-2.5 text-sm text-gold-100 shadow-xl backdrop-blur"
+        class="glass fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[var(--radius-pill)] px-5 py-2 text-sm text-mist-100"
         role="status"
       >
         {{ notice }}
@@ -347,3 +512,17 @@ onBeforeUnmount(() => {
     </Transition>
   </div>
 </template>
+
+<style scoped>
+.season-pill {
+  flex: none;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in oklab, var(--c-accent) 32%, transparent);
+  background: color-mix(in oklab, var(--c-accent) 12%, transparent);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--c-accent-strong);
+  white-space: nowrap;
+}
+</style>

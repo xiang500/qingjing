@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
+import { uploadImage } from '@/api/upload'
 import { CATEGORY_LABELS, CATEGORY_ORDER, SEASON_LABELS, type CategoryCode, type Clothing, type ClothingPayload } from '@/types/clothing'
 
 const props = defineProps<{
@@ -33,10 +34,30 @@ const createBlank = (): ClothingPayload => ({
 const form = reactive<ClothingPayload>(createBlank())
 const tagText = ref('')
 const nameError = ref('')
+const uploadingImage = ref(false)
+
+/** 从本机选图上传到后端，回填 /uploads/... 地址 */
+async function pickImage(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) {
+    return
+  }
+  uploadingImage.value = true
+  try {
+    form.imageUrl = await uploadImage(file)
+    ElMessage.success('图片已上传')
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '图片上传失败')
+  } finally {
+    uploadingImage.value = false
+  }
+}
 
 const title = computed(() => (props.item ? '编辑单品' : '录入新单品'))
 const description = computed(() =>
-  props.item ? `正在修改「${props.item.name}」的信息` : '录入一次，之后 AI 推荐和 3D 换装都会用到它',
+  props.item ? `正在修改「${props.item.name}」的信息` : '录入一次，之后 AI 推荐和搭配工作台都会用到它',
 )
 
 watch(
@@ -155,7 +176,7 @@ function handleSubmit() {
             <input
               v-model="form.colorHex"
               type="color"
-              class="size-10 cursor-pointer rounded-lg border border-white/10 bg-transparent"
+              class="size-10 cursor-pointer rounded-lg border border-ink-700/60 bg-transparent"
               aria-label="选择主色"
             />
             <input v-model="form.colorHex" class="field-input font-mono text-xs" placeholder="#8CA3B8" />
@@ -185,9 +206,21 @@ function handleSubmit() {
           <input id="purchaseDate" v-model="form.purchaseDate" type="date" class="field-input" />
         </div>
 
-        <div>
-          <label class="field-label" for="imageUrl">图片地址</label>
-          <input id="imageUrl" v-model="form.imageUrl" class="field-input" placeholder="留空则显示分类占位图" />
+        <div class="sm:col-span-2">
+          <label class="field-label" for="imageUrl">单品图片</label>
+          <div class="flex items-center gap-2">
+            <input id="imageUrl" v-model="form.imageUrl" class="field-input" placeholder="上传图片，或直接填图片地址" />
+            <label class="btn-ghost shrink-0 cursor-pointer whitespace-nowrap !px-3 !py-2 !text-xs">
+              <input type="file" accept="image/*" class="hidden" @change="pickImage" />
+              {{ uploadingImage ? '上传中…' : '上传图片' }}
+            </label>
+          </div>
+          <div v-if="form.imageUrl" class="mt-2 flex items-center gap-2">
+            <img :src="form.imageUrl" alt="单品预览" class="size-16 rounded-lg border border-ink-700/60 bg-ink-900/60 object-contain p-1" />
+            <button type="button" class="text-[11px] text-mist-500 transition-colors hover:text-rose-300" @click="form.imageUrl = ''">
+              移除图片
+            </button>
+          </div>
         </div>
 
         <div class="sm:col-span-2">

@@ -1,44 +1,230 @@
 @import 'tailwindcss';
 
+/*
+ * 轻境 · 四季光场（Seasonal Light Field）
+ * ------------------------------------------------------------------
+ * 设计语言：
+ *   1) 每个季节有自己的「光线」——春·晨光 / 夏·正午 / 秋·暖阳 / 冬·夜雪，
+ *      因此配色不是一套深色主题，而是四套季节色盘（浅色两套、深色两套）。
+ *   2) 所有材质走「液态玻璃」：半透明磨砂 + 双层高光边框 + 内外阴影，
+ *      背景的季节光晕透过玻璃被折射，界面像一块块玻璃浮在季节里。
+ *   3) 组件只使用语义色（paper/ink/mist/accent）或 .glass / .btn / .chip 原语，
+ *      换季时整站颜色由 CSS 变量一次切换，不需要改组件。
+ */
+
+/* ============================================================
+ * 1. 语义色令牌：Tailwind 主题色全部指向运行时可变的 CSS 变量
+ *    （保留 ink/mist/gold 旧名字，旧组件改季不改成堆 class）
+ * ============================================================ */
 @theme {
-  --color-ink-950: #070a10;
-  --color-ink-900: #0b1019;
-  --color-ink-850: #0f1520;
-  --color-ink-800: #131b28;
-  --color-ink-700: #1d2635;
-  --color-mist-100: #f5f2ec;
-  --color-mist-200: #e2ddd3;
-  --color-mist-300: #c6c0b4;
-  --color-mist-500: #8d887c;
-  --color-gold-200: #f0e2bf;
-  --color-gold-300: #e3cd9b;
-  --color-gold-400: #d6bd80;
-  --color-gold-500: #b99f61;
+  --color-ink-950: var(--c-bg);
+  --color-ink-900: var(--c-bg-2);
+  --color-ink-850: var(--c-bg-3);
+  --color-ink-800: var(--c-bg-4);
+  --color-ink-700: var(--c-line-strong);
+  --color-mist-100: var(--c-ink);
+  --color-mist-200: var(--c-ink-2);
+  --color-mist-300: var(--c-ink-3);
+  --color-mist-400: var(--c-muted);
+  --color-mist-500: var(--c-muted-2);
+  --color-gold-100: var(--c-accent-softer);
+  --color-gold-200: var(--c-accent-strong);
+  --color-gold-300: var(--c-accent);
+  --color-gold-400: var(--c-accent);
+  --color-gold-500: var(--c-accent-strong);
+
   --font-display: 'Songti SC', 'Noto Serif SC', 'Times New Roman', serif;
   --font-sans: 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+
+  --radius-glass: 1.6rem;
 }
 
+/* ============================================================
+ * 1.5 布局标度（固定值，全站统一）
+ *   - 间距只用 4 的倍数这 8 档，不再出现 0.55rem / 1.35rem 这类随手值
+ *   - 圆角只用 4 档 + 胶囊，卡片/按钮/输入框各自对应一档
+ *   - 区块默认纵向留白 --space-7，组内 --space-4，做到了「组间留白」
+ * ============================================================ */
+:root {
+  --space-1: 0.25rem; /* 4  */
+  --space-2: 0.5rem; /* 8  */
+  --space-3: 0.75rem; /* 12 */
+  --space-4: 1rem; /* 16 */
+  --space-5: 1.5rem; /* 24 */
+  --space-6: 2rem; /* 32 */
+  --space-7: 3rem; /* 48 */
+  --space-8: 4rem; /* 64 */
+
+  --radius-xs: 0.5rem; /* 8  —— 小标签、色块 */
+  --radius-sm: 0.75rem; /* 12 —— 输入框、缩略图 */
+  --radius-md: 1rem; /* 16 —— 卡片内层、按钮组 */
+  --radius-lg: 1.5rem; /* 24 —— 玻璃面板 */
+  --radius-pill: 999px;
+
+  /* 内容最大宽度与页面边距，所有页面一致 */
+  --page-max: 86rem;
+  --page-gutter: var(--space-5);
+}
+
+/* ============================================================
+ * 2. 季节 × 光线 色盘
+ * ============================================================ */
+
+/* 秋季 · 暖阳（浅）—— 杏黄 / 焦糖 / 苔绿
+ * 秋不再压成暗褐：底色是晒过的杏黄纸面，强调色用焦糖橙，
+ * 像下午四点的光。同时作为首屏默认值（JS 挂载前也有一套完整颜色） */
+:root,
+html[data-season='autumn'] {
+  --c-bg: #f8efdf;
+  --c-bg-2: #fffaf1;
+  --c-bg-3: #f2e6d2;
+  --c-bg-4: #e9d8bf;
+  --c-ink: #2c2117;
+  --c-ink-2: #55452f;
+  --c-ink-3: #6f5c42;
+  --c-muted: #8d7a5c;
+  --c-muted-2: #a2906f;
+  --c-line: rgba(44, 33, 23, 0.15);
+  --c-line-soft: rgba(44, 33, 23, 0.08);
+  --c-line-strong: rgba(44, 33, 23, 0.28);
+  --c-accent: #b06526;
+  --c-accent-strong: #8d4d18;
+  --c-accent-softer: #f3d9b4;
+  --c-accent-ink: #fff9f0;
+  --c-glass-a: rgba(255, 252, 245, 0.66);
+  --c-glass-b: rgba(255, 252, 245, 0.3);
+  --c-glass-edge: rgba(255, 255, 255, 0.88);
+  --c-glass-shadow: rgba(96, 66, 34, 0.2);
+  --c-wash-1: #f3cf9c;
+  --c-wash-2: #eab879;
+  --c-wash-3: #dd9a62;
+  --c-grain: 0.04;
+}
+
+/* 冬季 · 夜雪（深）—— 冰蓝 / 雾紫 / 银 */
+html[data-season='winter'] {
+  --c-bg: #0b1116;
+  --c-bg-2: #101820;
+  --c-bg-3: #16202a;
+  --c-bg-4: #1d2934;
+  --c-ink: #eef4fa;
+  --c-ink-2: #d3dfe9;
+  --c-ink-3: #b3c2d0;
+  --c-muted: #8fa0b1;
+  --c-muted-2: #7a8b9c;
+  --c-line: rgba(255, 255, 255, 0.1);
+  --c-line-soft: rgba(255, 255, 255, 0.06);
+  --c-line-strong: rgba(255, 255, 255, 0.2);
+  --c-accent: #a9c9e2;
+  --c-accent-strong: #cfe4f4;
+  --c-accent-softer: #e8f2fa;
+  --c-accent-ink: #0d1a24;
+  --c-glass-a: rgba(244, 250, 255, 0.1);
+  --c-glass-b: rgba(244, 250, 255, 0.035);
+  --c-glass-edge: rgba(255, 255, 255, 0.24);
+  --c-glass-shadow: rgba(0, 0, 0, 0.55);
+  --c-wash-1: #2f4a5e;
+  --c-wash-2: #403a55;
+  --c-wash-3: #26343f;
+  --c-grain: 0.05;
+}
+
+/* 春季 · 晨光（浅）—— 柳芽 / 樱粉 / 雾蓝 */
+html[data-season='spring'] {
+  --c-bg: #f7f4ec;
+  --c-bg-2: #fffdf8;
+  --c-bg-3: #f1ece1;
+  --c-bg-4: #e9e2d4;
+  --c-ink: #23291f;
+  --c-ink-2: #4c5647;
+  --c-ink-3: #6b7565;
+  --c-muted: #8b9483;
+  --c-muted-2: #a0a898;
+  --c-line: rgba(35, 42, 32, 0.14);
+  --c-line-soft: rgba(35, 42, 32, 0.08);
+  --c-line-strong: rgba(35, 42, 32, 0.26);
+  --c-accent: #5f7f58;
+  --c-accent-strong: #47643f;
+  --c-accent-softer: #dfe9d5;
+  --c-accent-ink: #fbfaf3;
+  --c-glass-a: rgba(255, 255, 255, 0.62);
+  --c-glass-b: rgba(255, 255, 255, 0.28);
+  --c-glass-edge: rgba(255, 255, 255, 0.85);
+  --c-glass-shadow: rgba(64, 58, 40, 0.22);
+  --c-wash-1: #dfe9cf;
+  --c-wash-2: #f2d7d0;
+  --c-wash-3: #cfe4e6;
+  --c-grain: 0.045;
+}
+
+/* 夏季 · 正午（浅）—— 海盐 / 沙 / 柠檬 */
+html[data-season='summer'] {
+  --c-bg: #f6f7f0;
+  --c-bg-2: #fffef7;
+  --c-bg-3: #eff1e6;
+  --c-bg-4: #e6e9da;
+  --c-ink: #1f2b2d;
+  --c-ink-2: #45585a;
+  --c-ink-3: #657879;
+  --c-muted: #87999a;
+  --c-muted-2: #9dafae;
+  --c-line: rgba(31, 43, 45, 0.14);
+  --c-line-soft: rgba(31, 43, 45, 0.08);
+  --c-line-strong: rgba(31, 43, 45, 0.26);
+  --c-accent: #2f7c88;
+  --c-accent-strong: #1d606c;
+  --c-accent-softer: #cfe6e9;
+  --c-accent-ink: #f7fdfd;
+  --c-glass-a: rgba(255, 255, 255, 0.64);
+  --c-glass-b: rgba(255, 255, 255, 0.3);
+  --c-glass-edge: rgba(255, 255, 255, 0.9);
+  --c-glass-shadow: rgba(40, 58, 60, 0.2);
+  --c-wash-1: #bfe0e6;
+  --c-wash-2: #f0dfae;
+  --c-wash-3: #cfe3d3;
+  --c-grain: 0.04;
+}
+
+/* 深色季节的玻璃更暗一些，保证深底上的层次 */
+html[data-scheme='dark'] {
+  color-scheme: dark;
+}
+
+html[data-scheme='light'] {
+  color-scheme: light;
+}
+
+/* ============================================================
+ * 3. 基础层
+ * ============================================================ */
 @layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   html {
-    color-scheme: dark;
+    scroll-behavior: smooth;
   }
 
   body {
     margin: 0;
     min-height: 100vh;
-    background-color: var(--color-ink-950);
-    color: var(--color-mist-100);
+    background-color: var(--c-bg);
+    color: var(--c-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    background-image:
-      radial-gradient(60rem 40rem at 12% -10%, rgba(214, 189, 128, 0.14), transparent 60%),
-      radial-gradient(50rem 36rem at 92% 8%, rgba(94, 132, 178, 0.18), transparent 62%),
-      radial-gradient(46rem 34rem at 50% 110%, rgba(126, 104, 160, 0.12), transparent 65%);
-    background-attachment: fixed;
+    text-rendering: optimizeLegibility;
   }
 
   ::selection {
-    background: rgba(214, 189, 128, 0.28);
+    background: color-mix(in oklab, var(--c-accent) 32%, transparent);
+    color: var(--c-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--c-accent) 78%, transparent);
+    outline-offset: 2px;
+    border-radius: 0.4rem;
   }
 
   ::-webkit-scrollbar {
@@ -47,9 +233,9 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: color-mix(in oklab, var(--c-ink) 18%, transparent);
     border-radius: 999px;
-    border: 2px solid transparent;
+    border: 3px solid transparent;
     background-clip: padding-box;
   }
 
@@ -58,122 +244,416 @@
   }
 }
 
+/* ============================================================
+ * 4. 液态玻璃原语
+ *    - 一层渐变玻璃底 + 内高光（顶亮底亮）
+ *    - ::before 用 mask-composite 画「双层折射边框」
+ *    - ::after 顶部柔光，靠近光的时候边缘更像玻璃
+ * ============================================================ */
 @layer components {
-  .glass-card {
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
-    border-radius: 1.25rem;
-    backdrop-filter: blur(18px);
+  .glass,
+  .glass-soft {
+    position: relative;
+    isolation: isolate;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(148deg, var(--c-glass-a), var(--c-glass-b));
+    -webkit-backdrop-filter: blur(26px) saturate(180%) contrast(106%);
+    backdrop-filter: blur(26px) saturate(180%) contrast(106%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 90%, transparent),
+      inset 0 -1px 0 color-mix(in oklab, white 34%, transparent),
+      inset 0 0 0 1px color-mix(in oklab, white 26%, transparent),
+      0 1px 2px var(--c-glass-shadow),
+      0 22px 54px -30px var(--c-glass-shadow);
   }
 
-  .field-label {
-    display: block;
-    margin-bottom: 0.4rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-mist-500);
+  html[data-scheme='dark'] .glass,
+  html[data-scheme='dark'] .glass-soft {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+      0 1px 2px rgba(0, 0, 0, 0.55),
+      0 26px 60px -34px rgba(0, 0, 0, 0.8);
   }
 
-  .field-input {
+  .glass::before,
+  .glass-soft::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      140deg,
+      color-mix(in oklab, var(--c-glass-edge) 100%, transparent),
+      transparent 34%,
+      transparent 62%,
+      color-mix(in oklab, var(--c-glass-edge) 78%, transparent)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* 顶部反光：玻璃上方那道柔和的白光 */
+  .glass::after,
+  .glass-soft::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      120% 60% at 50% -20%,
+      color-mix(in oklab, white 32%, transparent),
+      transparent 62%
+    );
+    opacity: 0.7;
+    z-index: 0;
+  }
+
+  .glass {
+    overflow: hidden;
+  }
+
+  .glass-soft {
+    border-radius: var(--radius-md);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 62%, transparent),
+      0 10px 30px -26px var(--c-glass-shadow);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+  }
+
+  html[data-scheme='dark'] .glass-soft {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+      0 12px 30px -24px rgba(0, 0, 0, 0.8);
+  }
+
+  /* 细线：分隔与描边统一走语义线色 */
+  .hairline {
+    border-color: var(--c-line);
+  }
+
+  .hairline-soft {
+    border-color: var(--c-line-soft);
+  }
+
+  /* 商品图「影棚底」：任何季节下都保持一致的深色底，衣服才看得清 */
+  .photo-tile {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 120% at 32% 8%, rgba(255, 255, 255, 0.09), transparent 62%),
+      #101216;
+  }
+
+  .photo-tile > img {
     width: 100%;
-    border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(7, 10, 16, 0.55);
-    padding: 0.6rem 0.85rem;
-    font-size: 0.875rem;
-    color: var(--color-mist-100);
-    outline: none;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    height: 100%;
+    object-fit: contain;
   }
 
-  .field-input::placeholder {
-    color: rgba(141, 136, 124, 0.75);
+  /* 覆盖在图片上的说明文字/标签，永远是浅色 */
+  .on-photo {
+    color: rgba(255, 255, 255, 0.88);
   }
 
-  .field-input:focus {
-    border-color: rgba(214, 189, 128, 0.55);
-    box-shadow: 0 0 0 3px rgba(214, 189, 128, 0.12);
+  /* 章节小标 */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 10px;
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--c-accent) 78%, var(--c-ink));
   }
 
-  .btn-primary {
+  .eyebrow::before {
+    content: '';
+    width: 2rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.5;
+  }
+
+  .display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------- 页面节奏：组间留白 / 区块拆分 ---------- */
+  /* 1) 页面根：所有页面用它包裹，区块之间统一 48px（手机 32px） */
+  .page-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-7);
+  }
+
+  /* 2) 一个区块：标题 + 内容，内部 24px */
+  .section-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  /* 3) 区块头：左标题 / 右操作，底部留一道极淡分隔 */
+  .section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+  }
+
+  .section-head h2 {
+    font-family: var(--font-display);
+    font-size: 1.375rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--c-ink);
+  }
+
+  .section-head p {
+    margin-top: var(--space-1);
+    font-size: 0.75rem;
+    line-height: 1.7;
+    color: var(--c-muted);
+  }
+
+  /* 4) 下沉面板：比玻璃暗一档，用来装「次要信息」，与突出操作形成明暗对比 */
+  .surface-sunken {
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in oklab, var(--c-line) 100%, transparent);
+    background: color-mix(in oklab, var(--c-bg) 46%, transparent);
+  }
+
+  html[data-scheme='light'] .surface-sunken {
+    background: color-mix(in oklab, var(--c-bg-3) 72%, transparent);
+  }
+
+  /* 5) 操作行：主操作亮、次操作暗，靠明暗对比把「下一步做什么」推出来 */
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .action-row .btn-ghost {
+    background: color-mix(in oklab, var(--c-bg) 34%, transparent);
+    border-color: color-mix(in oklab, var(--c-line) 78%, transparent);
+    color: var(--c-ink-3);
+  }
+
+  html[data-scheme='light'] .action-row .btn-ghost {
+    background: color-mix(in oklab, #ffffff 46%, transparent);
+    color: var(--c-ink-2);
+  }
+
+  /* 6) 分组错落：把一大块内容拆成几块后，依次下沉，形成节奏而非一张平板 */
+  .staggered {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  @media (min-width: 1024px) {
+    .staggered {
+      gap: var(--space-5);
+    }
+
+    .staggered > *:nth-child(even) {
+      transform: translateY(var(--space-4));
+    }
+
+    /* 错落会让最后一块多下沉一档，补回来避免底部空一截 */
+    .staggered > *:last-child {
+      margin-bottom: var(--space-4);
+    }
+  }
+
+  /* 手机端取消错落，避免无谓的空白 */
+  @media (max-width: 1023px) {
+    .page-stack {
+      gap: var(--space-6);
+    }
+
+    .staggered > * {
+      transform: none;
+    }
+  }
+
+  .accent-text {
+    color: var(--c-accent);
+  }
+
+  /* ---------- 按钮 ---------- */
+  .btn-primary,
+  .btn-ghost {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    border-radius: 0.8rem;
-    padding: 0.6rem 1.15rem;
-    font-size: 0.875rem;
+    border-radius: 999px;
+    padding: 0.68rem 1.3rem;
+    font-size: 0.86rem;
     font-weight: 600;
-    color: #14100a;
-    background: linear-gradient(120deg, var(--color-gold-300), var(--color-gold-400));
-    transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
-    box-shadow: 0 10px 30px -12px rgba(214, 189, 128, 0.65);
+    font-family: inherit;
+    border: 0;
+    cursor: pointer;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease,
+      color 0.18s ease,
+      filter 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    color: var(--c-accent-ink);
+    background: linear-gradient(
+      140deg,
+      color-mix(in oklab, var(--c-accent) 82%, white),
+      var(--c-accent)
+    );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 55%, transparent),
+      inset 0 -1px 0 color-mix(in oklab, black 12%, transparent),
+      0 14px 30px -16px color-mix(in oklab, var(--c-accent) 90%, transparent);
   }
 
   .btn-primary:hover {
     transform: translateY(-1px);
-    filter: brightness(1.05);
+    filter: brightness(1.04);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
   }
 
   .btn-primary:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
   }
 
   .btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    border-radius: 0.8rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 0.55rem 1rem;
-    font-size: 0.875rem;
-    color: var(--color-mist-200);
-    background: rgba(255, 255, 255, 0.02);
-    transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+    color: var(--c-ink);
+    background: color-mix(in oklab, var(--c-glass-a) 82%, transparent);
+    border: 1px solid color-mix(in oklab, var(--c-glass-edge) 46%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 55%, transparent),
+      0 10px 26px -20px var(--c-glass-shadow);
   }
 
   .btn-ghost:hover {
-    border-color: rgba(214, 189, 128, 0.45);
-    color: var(--color-gold-200);
-    background: rgba(214, 189, 128, 0.08);
+    color: var(--c-accent-strong);
+    border-color: color-mix(in oklab, var(--c-accent) 55%, transparent);
+    background: color-mix(in oklab, var(--c-accent) 12%, var(--c-glass-a));
   }
 
+  .btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* ---------- 胶囊 / 筛选 ---------- */
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0.35rem 0.8rem;
+    border: 1px solid color-mix(in oklab, var(--c-line) 100%, transparent);
+    padding: 0.42rem 0.9rem;
     font-size: 0.78rem;
-    color: var(--color-mist-300);
-    background: rgba(255, 255, 255, 0.02);
-    transition: all 0.16s ease;
+    color: var(--c-ink-3);
+    background: color-mix(in oklab, var(--c-glass-a) 55%, transparent);
+    transition: all 0.18s ease;
     cursor: pointer;
     white-space: nowrap;
   }
 
   .chip:hover {
-    border-color: rgba(214, 189, 128, 0.4);
-    color: var(--color-gold-200);
+    color: var(--c-accent-strong);
+    border-color: color-mix(in oklab, var(--c-accent) 45%, transparent);
   }
 
   .chip-active {
-    border-color: rgba(214, 189, 128, 0.7);
-    background: rgba(214, 189, 128, 0.16);
-    color: var(--color-gold-200);
-    box-shadow: 0 0 0 3px rgba(214, 189, 128, 0.08);
+    color: var(--c-accent-ink);
+    border-color: transparent;
+    background: linear-gradient(
+      140deg,
+      color-mix(in oklab, var(--c-accent) 88%, white),
+      var(--c-accent)
+    );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 45%, transparent),
+      0 8px 20px -14px color-mix(in oklab, var(--c-accent) 90%, transparent);
   }
 
+  .chip-active:hover {
+    color: var(--c-accent-ink);
+  }
+
+  /* ---------- 表单 ---------- */
+  .field-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-muted-2);
+  }
+
+  .field-input {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklab, var(--c-line) 100%, transparent);
+    background: color-mix(in oklab, var(--c-glass-a) 62%, transparent);
+    padding: 0.62rem 0.9rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: var(--c-ink);
+    outline: none;
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease;
+  }
+
+  .field-input::placeholder {
+    color: color-mix(in oklab, var(--c-muted-2) 82%, transparent);
+  }
+
+  .field-input:focus {
+    border-color: color-mix(in oklab, var(--c-accent) 62%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-accent) 16%, transparent);
+  }
+
+  /* 深色季节的输入框不要太亮 */
+  html[data-scheme='dark'] .field-input {
+    background: rgba(10, 8, 6, 0.45);
+  }
+
+  /* ---------- 骨架屏 ---------- */
   .skeleton {
     position: relative;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in oklab, var(--c-ink) 8%, transparent);
   }
 
   .skeleton::after {
@@ -181,13 +661,21 @@
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--c-ink) 8%, transparent),
+      transparent
+    );
     animation: shimmer 1.4s infinite;
   }
 
+  /* ---------- 过渡 ---------- */
   .fade-enter-active,
   .fade-leave-active {
-    transition: opacity 0.22s ease, transform 0.22s ease;
+    transition:
+      opacity 0.22s ease,
+      transform 0.22s ease;
   }
 
   .fade-enter-from,
@@ -203,11 +691,113 @@
   }
 }
 
+/* ============================================================
+ * 换季整页交叉淡入（View Transition API）
+ * 浏览器不支持时退化为直接换色，不影响功能
+ * ============================================================ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.7s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================
+ * 5. Element Plus 液态玻璃适配（弹窗 / 表格 / 输入 / 下拉）
+ *    只覆盖与玻璃冲突的表面色，保留组件行为与可访问性
+ * ============================================================ */
+@layer components {
+  .el-overlay {
+    backdrop-filter: blur(6px);
+  }
+
+  .el-dialog {
+    border-radius: 1.5rem;
+    border: 1px solid color-mix(in oklab, var(--c-line) 100%, transparent);
+    background: color-mix(in oklab, var(--c-bg-2) 88%, transparent);
+    -webkit-backdrop-filter: blur(28px) saturate(170%);
+    backdrop-filter: blur(28px) saturate(170%);
+    box-shadow: 0 40px 90px -50px var(--c-glass-shadow);
+  }
+
+  .el-dialog__title,
+  .el-message-box__title {
+    font-family: var(--font-display);
+    color: var(--c-ink);
+  }
+
+  .el-message-box {
+    border-radius: 1.35rem;
+    border: 1px solid color-mix(in oklab, var(--c-line) 100%, transparent);
+    background: color-mix(in oklab, var(--c-bg-2) 92%, transparent);
+    -webkit-backdrop-filter: blur(26px) saturate(170%);
+    backdrop-filter: blur(26px) saturate(170%);
+  }
+
+  .el-table {
+    --el-table-bg-color: transparent;
+    --el-table-tr-bg-color: transparent;
+    --el-table-header-bg-color: color-mix(in oklab, var(--c-ink) 5%, transparent);
+    --el-table-border-color: var(--c-line-soft);
+    --el-table-text-color: var(--c-ink-2);
+    --el-table-header-text-color: var(--c-muted);
+    --el-table-row-hover-bg-color: color-mix(in oklab, var(--c-accent) 8%, transparent);
+    background: transparent;
+  }
+
+  .el-table th.el-table__cell {
+    font-weight: 500;
+  }
+
+  .el-input__wrapper,
+  .el-textarea__inner {
+    border-radius: 0.8rem;
+    background: color-mix(in oklab, var(--c-glass-a) 55%, transparent);
+    box-shadow: inset 0 0 0 1px var(--c-line);
+  }
+
+  .el-input__wrapper.is-focus,
+  .el-textarea__inner:focus {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--c-accent) 60%, transparent);
+  }
+
+  .el-button {
+    border-radius: 999px;
+  }
+
+  .el-popper.is-light {
+    border-radius: 0.9rem;
+    border-color: var(--c-line);
+    background: color-mix(in oklab, var(--c-bg-2) 92%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  .el-select-dropdown__item.is-selected {
+    color: var(--c-accent);
+  }
+
+  .el-tag {
+    border-radius: 999px;
+  }
+
+  .el-pagination {
+    --el-pagination-bg-color: transparent;
+    --el-pagination-button-bg-color: transparent;
+    --el-pagination-text-color: var(--c-ink-3);
+    --el-pagination-button-color: var(--c-ink-3);
+    --el-pagination-hover-color: var(--c-accent);
+  }
+}
+
+/* ============================================================
+ * 6. 动效偏好
+ * ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
 }

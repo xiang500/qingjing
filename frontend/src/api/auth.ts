@@ -18,7 +18,8 @@ export interface AuthSession {
 
 interface Envelope<T> {
   code: number
-  message: string
+  msg?: string
+  message?: string
   data: T
 }
 
@@ -30,7 +31,7 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   })
   const payload = (await response.json()) as Envelope<T>
   if (payload.code !== 0) {
-    throw new Error(payload.message)
+    throw new Error(payload.msg ?? payload.message ?? '请求失败')
   }
   return payload.data
 }
@@ -50,7 +51,35 @@ export async function fetchMe(): Promise<AuthUser> {
   })
   const payload = (await response.json()) as Envelope<AuthUser>
   if (payload.code !== 0) {
-    throw new Error(payload.message)
+    throw new Error(payload.msg ?? payload.message ?? '请求失败')
   }
   return payload.data
+}
+
+export interface ProfilePayload {
+  nickname?: string
+  avatarUrl?: string
+  gender?: number
+  heightCm?: number
+  weightKg?: number
+  bodyType?: string
+  stylePreference?: string[]
+}
+
+/** 更新个人资料（身高/体重/体型/风格偏好是 AI 推荐的输入） */
+export async function updateProfile(payload: ProfilePayload): Promise<AuthUser> {
+  const token = localStorage.getItem('qj.token')
+  const response = await fetch('/api/auth/profile', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  })
+  const body = (await response.json()) as Envelope<AuthUser>
+  if (body.code !== 0) {
+    throw new Error(body.msg ?? body.message ?? '保存失败')
+  }
+  return body.data
 }

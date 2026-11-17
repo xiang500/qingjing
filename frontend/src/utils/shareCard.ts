@@ -89,7 +89,7 @@ export async function downloadShareCard(input: ShareCardInput, filename = 'qingj
 
   ctx.fillStyle = 'rgba(245, 242, 236, 0.55)'
   ctx.font = '22px "HarmonyOS Sans SC", "PingFang SC", sans-serif'
-  ctx.fillText('AI 穿搭 · 3D 数字衣橱', 88, 168)
+  ctx.fillText('轻境 · 四季衣橱', 88, 168)
 
   const titleFont = '600 58px "Songti SC", "Noto Serif SC", serif'
   ctx.fillStyle = '#f5f2ec'

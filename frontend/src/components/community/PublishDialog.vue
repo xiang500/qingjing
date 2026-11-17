@@ -72,8 +72,16 @@ async function submit() {
   >
     <form class="space-y-4" @submit.prevent="submit">
       <div>
-        <label class="field-label" for="post-title">标题 *</label>
-        <input id="post-title" v-model="title" class="field-input" placeholder="例如：雾蓝衬衫的通勤日" maxlength="60" />
+        <label class="field-label" for="post-title">
+          标题 <span class="text-gold-300">*</span>
+        </label>
+        <input
+          id="post-title"
+          v-model="title"
+          class="field-input"
+          placeholder="例如：雾蓝衬衫的通勤日"
+          maxlength="60"
+        />
       </div>
 
       <div>
@@ -88,24 +96,49 @@ async function submit() {
         />
       </div>
 
-      <div v-if="preview.length" class="flex gap-2">
-        <div
-          v-for="url in preview"
-          :key="url"
-          class="size-16 overflow-hidden rounded-lg border border-white/10 bg-ink-900/60"
-        >
-          <img :src="url" alt="" class="size-full object-contain p-1" />
+      <!-- 预置图片：统一放在深色影棚底上 -->
+      <div v-if="preview.length" class="space-y-2">
+        <p class="field-label flex items-center justify-between">
+          <span>已选图片</span>
+          <span class="tracking-normal text-mist-500">{{ preview.length }} 张</span>
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <div
+            v-for="url in preview"
+            :key="url"
+            class="photo-tile size-16 overflow-hidden rounded-xl"
+          >
+            <img :src="url" alt="" class="p-1.5" />
+          </div>
         </div>
       </div>
 
       <div v-else>
         <label class="field-label" for="post-outfit">关联套装</label>
-        <select id="post-outfit" v-model="outfitId" class="field-input">
-          <option :value="0">不关联套装（仅文字分享）</option>
-          <option v-for="outfit in outfits" :key="outfit.id" :value="outfit.id">
-            {{ outfit.name }}（{{ outfit.itemNames.length }} 件）
-          </option>
-        </select>
+        <div class="relative">
+          <select
+            id="post-outfit"
+            v-model="outfitId"
+            class="field-input cursor-pointer appearance-none pr-9"
+          >
+            <option :value="0">不关联套装（仅文字分享）</option>
+            <option v-for="outfit in outfits" :key="outfit.id" :value="outfit.id">
+              {{ outfit.name }}（{{ outfit.itemNames.length }} 件）
+            </option>
+          </select>
+          <svg
+            class="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-mist-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <p class="mt-1.5 text-[10px] leading-relaxed text-mist-500">
+          关联后，其他人可以在社区里一键试穿这套搭配。
+        </p>
       </div>
 
       <div>
@@ -113,17 +146,38 @@ async function submit() {
         <input id="post-tags" v-model="tags" class="field-input" placeholder="通勤，秋季，法式" />
       </div>
 
-      <p v-if="store.error" class="rounded-lg border border-rose-400/25 bg-rose-400/8 px-3 py-2 text-xs text-rose-100">
+      <div class="glass-soft flex items-start gap-2.5 px-3 py-2.5">
+        <svg
+          class="mt-0.5 size-3.5 shrink-0 text-gold-300"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.4l-1.9-5.6L4.5 11 10.1 9 12 3.5Z" stroke-linejoin="round" />
+        </svg>
+        <p class="text-[11px] leading-relaxed text-mist-400">
+          发布小贴士：标题写清场景（通勤 / 约会 / 周末），正文说清配色与单品，更容易被试穿。
+        </p>
+      </div>
+
+      <p
+        v-if="store.error"
+        class="rounded-xl border border-gold-300/35 bg-gold-300/10 px-3 py-2 text-xs leading-relaxed text-mist-200"
+      >
         {{ store.error }}
       </p>
     </form>
 
     <template #footer>
-      <div class="flex justify-end gap-2">
-        <button type="button" class="btn-ghost" @click="emit('close')">取消</button>
-        <button type="button" class="btn-primary" :disabled="store.publishing" @click="submit">
-          {{ store.publishing ? '发布中…' : '发布到社区' }}
-        </button>
+      <div class="flex items-center justify-between gap-3">
+        <span class="hidden text-[10px] text-mist-500 sm:inline">发布后将展示在社区信息流中</span>
+        <div class="ml-auto flex justify-end gap-2">
+          <button type="button" class="btn-ghost" @click="emit('close')">取消</button>
+          <button type="button" class="btn-primary" :disabled="store.publishing" @click="submit">
+            {{ store.publishing ? '发布中…' : '发布到社区' }}
+          </button>
+        </div>
       </div>
     </template>
   </BaseModal>

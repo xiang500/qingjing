@@ -6,21 +6,28 @@ target/
 .npm-cache/
 .tools/
 
-# 本地数据库实例
+# 本地数据库实例（数据目录不进版本库，表结构见 newbackend/db/）
 mysql-data/
 .mysql/
 
 # 编辑器原子写入的临时目录
 *.tmpdir/
 
-# 运行时大资源（npm run fetch:assets 拉取）
-frontend/public/models/
-frontend/public/mediapipe-wasm/
+# 本地临时文件（截图脚本、构建临时目录等）
+.tmp/
 
-# 编辑器
+# 编辑器与系统文件
 .idea/
 .vscode/
 *.iml
+.DS_Store
+Thumbs.db
 
 # 日志
 *.log
+
+# 运行期上传的图片（仅本地保留）
+newbackend/uploads/
+
+# 早期 3D 方案遗留素材（如恢复则需要重新拉取）
+Universal Base Characters*/

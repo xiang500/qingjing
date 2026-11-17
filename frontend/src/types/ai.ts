@@ -18,6 +18,8 @@ export interface Recommendation {
   score?: number
   reason?: string
   items: RecommendationItem[]
+  /** 后端落库的推荐记录 ID，用于统计采纳率 */
+  recommendationId?: number
 }
 
 export type ChatRole = 'user' | 'assistant'

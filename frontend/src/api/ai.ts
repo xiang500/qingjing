@@ -13,7 +13,7 @@ export async function fetchChatSessions(): Promise<ChatSession[]> {
   const response = await fetch('/api/ai/sessions', { headers: userIdHeader() })
   const body = await response.json()
   if (body.code !== 0) {
-    throw new Error(body.message ?? '会话列表加载失败')
+    throw new Error(body.msg ?? body.message ?? '会话列表加载失败')
   }
   return body.data as ChatSession[]
 }
@@ -22,7 +22,7 @@ export async function fetchChatMessages(sessionId: number): Promise<ChatMessage[
   const response = await fetch(`/api/ai/sessions/${sessionId}/messages`, { headers: userIdHeader() })
   const body = await response.json()
   if (body.code !== 0) {
-    throw new Error(body.message ?? '历史消息加载失败')
+    throw new Error(body.msg ?? body.message ?? '历史消息加载失败')
   }
   return (body.data as ChatMessage[]).map((message) => ({
     ...message,
@@ -45,9 +45,35 @@ export async function fetchAiStatus(): Promise<AiStatus> {
   const response = await fetch('/api/ai/status', { headers: userIdHeader() })
   const body = await response.json()
   if (body.code !== 0) {
-    throw new Error(body.message ?? 'AI 状态获取失败')
+    throw new Error(body.msg ?? body.message ?? 'AI 状态获取失败')
   }
   return body.data as AiStatus
+}
+
+/** 采纳 AI 推荐：TRY_ON（去试衣镜）/ SAVE（保存套装），用于统计采纳率 */
+export async function adoptRecommendation(id: number, action: 'TRY_ON' | 'SAVE'): Promise<void> {
+  const response = await fetch(`/api/recommendations/${id}/adopt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...userIdHeader() },
+    body: JSON.stringify({ action }),
+  })
+  const body = await response.json()
+  if (body.code !== 0) {
+    throw new Error(body.msg ?? body.message ?? '记录采纳失败')
+  }
+}
+
+/** 重命名会话 */
+export async function renameChatSession(id: number, title: string): Promise<void> {
+  const response = await fetch(`/api/ai/sessions/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...userIdHeader() },
+    body: JSON.stringify({ title }),
+  })
+  const body = await response.json()
+  if (body.code !== 0) {
+    throw new Error(body.msg ?? body.message ?? '重命名失败')
+  }
 }
 
 export interface StreamChatPayload {

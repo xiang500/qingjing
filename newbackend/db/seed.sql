@@ -1,3 +1,23 @@
+-- ============================================================
+-- 轻境 · 演示数据（可重复执行：先清空演示数据再写入）
+-- 目标库：chuaizhibeidatabase（表结构见 schema.sql）
+-- 知识库片段不在此插入：后端启动时若表为空会用 ai/outfit-knowledge.json 初始化
+-- ============================================================
+
+SET NAMES utf8mb4;
+
+-- ---------- 0. 重置演示数据 ----------
+DELETE FROM `wear_log`;
+DELETE FROM `comment`;
+DELETE FROM `post_like`;
+DELETE FROM `post`;
+DELETE FROM `ai_recommendation`;
+DELETE FROM `chat_message`;
+DELETE FROM `chat_session`;
+DELETE FROM `outfit`;
+DELETE FROM `clothing`;
+DELETE FROM `user`;
+DELETE FROM `knowledge_chunk`;
 -- 轻境演示数据：演示账号 demo / 123456（password 为 BCrypt 哈希）
 
 
@@ -90,3 +110,148 @@ WHERE (multi.k = 1 OR MOD(CRC32(CONCAT('extra-', worn_day)), 100) < 12)
                   CASE WHEN ago <= 90 THEN 720 WHEN ago <= 200 THEN 520 ELSE 400 END
            END
       );
+-- ============================================================
+-- 实拍演示数据（社区帖子 / 套装封面 / 衣橱实拍单品）
+-- 图片素材位于 frontend/public/items 与 frontend/public/looks
+-- 本段可重复执行，会覆盖上面的插画版单品与示例帖子
+-- ============================================================
+-- ============================================================
+-- 真实照片演示数据：衣橱单品、套装封面、社区帖子与作者
+-- 图片素材位于 frontend/public/items/ 与 frontend/public/looks/
+-- 可重复执行（先删后插 / ON DUPLICATE KEY UPDATE）
+-- ============================================================
+
+SET NAMES utf8mb4;
+
+-- ---------- 1. 三位示例作者（密码与 demo 相同：123456） ----------
+INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `created_at`, `updated_at`, `deleted`)
+SELECT 3, 'lin', u.`password`, '林一', NULL, 1, 178.0, 68.0, 'H', JSON_ARRAY('简约', '通勤', '街头'), NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
+ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`);
+
+INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `created_at`, `updated_at`, `deleted`)
+SELECT 4, 'xiaoyu', u.`password`, '小鱼', NULL, 2, 163.0, 48.0, 'A', JSON_ARRAY('甜美', '学院', '叠穿'), NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
+ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`);
+
+INSERT INTO `user` (`id`, `username`, `password`, `nickname`, `avatar_url`, `gender`, `height_cm`, `weight_kg`, `body_type`, `style_preference`, `created_at`, `updated_at`, `deleted`)
+SELECT 5, 'amu', u.`password`, '阿木', NULL, 1, 182.0, 74.0, 'Y', JSON_ARRAY('工装', '复古', '宽松'), NOW(), NOW(), 0 FROM `user` u WHERE u.`id` = 1
+ON DUPLICATE KEY UPDATE `nickname` = VALUES(`nickname`), `style_preference` = VALUES(`style_preference`);
+
+-- ---------- 2. 十二件真实单品 ----------
+UPDATE `clothing` SET `name` = '基础款纯棉白T恤', `category` = 'TOP', `sub_category` = 'T恤',
+  `color` = '本白', `color_hex` = '#F2EFE9', `season` = 'SPRING,SUMMER,AUTUMN',
+  `style_tags` = JSON_ARRAY('简约', '基础款', '百搭'), `material` = '精梳棉', `brand` = 'LETTEHHEART',
+  `image_url` = '/items/item-white-tee.jpg', `price` = 129.00
+WHERE `id` = 1;
+
+UPDATE `clothing` SET `name` = '做旧水洗宽松衬衫', `category` = 'TOP', `sub_category` = '衬衫',
+  `color` = '米白做旧', `color_hex` = '#E7E0D2', `season` = 'SPRING,AUTUMN',
+  `style_tags` = JSON_ARRAY('复古', '宽松', '叠穿'), `material` = '水洗棉', `brand` = 'NEHD',
+  `image_url` = '/items/item-bleached-shirt.jpg', `price` = 359.00
+WHERE `id` = 2;
+
+UPDATE `clothing` SET `name` = '黑色粗针麻花毛衣', `category` = 'TOP', `sub_category` = '毛衣',
+  `color` = '墨黑', `color_hex` = '#26262A', `season` = 'AUTUMN,WINTER',
+  `style_tags` = JSON_ARRAY('日系', '宽松', '针织'), `material` = '羊毛混纺', `brand` = 'studio',
+  `image_url` = '/items/item-black-knit.jpg', `price` = 469.00
+WHERE `id` = 3;
+
+UPDATE `clothing` SET `name` = '灰色连帽卫衣', `category` = 'TOP', `sub_category` = '卫衣',
+  `color` = '灰绿', `color_hex` = '#6E6A5C', `season` = 'AUTUMN,WINTER',
+  `style_tags` = JSON_ARRAY('街头', '宽松', '刺绣'), `material` = '抓绒棉', `brand` = 'Unreborn',
+  `image_url` = '/items/item-grey-hoodie.jpg', `price` = 329.00
+WHERE `id` = 4;
+
+UPDATE `clothing` SET `name` = '格纹翻领POLO卫衣', `category` = 'TOP', `sub_category` = '卫衣',
+  `color` = '奶油白', `color_hex` = '#EDE8DC', `season` = 'SPRING,AUTUMN',
+  `style_tags` = JSON_ARRAY('学院', '甜美', '刺绣'), `material` = '卫衣布', `brand` = 'kitty',
+  `image_url` = '/items/item-polo-sweatshirt.jpg', `price` = 189.00
+WHERE `id` = 5;
+
+UPDATE `clothing` SET `name` = '蓝色绣花开衫', `category` = 'OUTER', `sub_category` = '针织开衫',
+  `color` = '牛仔蓝', `color_hex` = '#38528C', `season` = 'AUTUMN,WINTER',
+  `style_tags` = JSON_ARRAY('复古', '花纹', '慵懒'), `material` = '马海毛混纺', `brand` = 'futenali',
+  `image_url` = '/items/item-blue-cardigan.jpg', `price` = 529.00
+WHERE `id` = 6;
+
+UPDATE `clothing` SET `name` = '灰色双面呢长大衣', `category` = 'OUTER', `sub_category` = '大衣',
+  `color` = '深灰', `color_hex` = '#4B4B4F', `season` = 'AUTUMN,WINTER',
+  `style_tags` = JSON_ARRAY('通勤', '正装', '羊毛'), `material` = '羊毛双面呢', `brand` = 'FW26',
+  `image_url` = '/items/item-grey-coat.jpg', `price` = 1980.00
+WHERE `id` = 7;
+
+UPDATE `clothing` SET `name` = '灰色阔腿卫裤', `category` = 'BOTTOM', `sub_category` = '卫裤',
+  `color` = '中灰', `color_hex` = '#9C9C9C', `season` = 'AUTUMN,WINTER',
+  `style_tags` = JSON_ARRAY('宽松', '舒适', '街头'), `material` = '抓绒棉', `brand` = 'studio',
+  `image_url` = '/items/item-grey-pants.jpg', `price` = 299.00
+WHERE `id` = 8;
+
+UPDATE `clothing` SET `name` = '黑色百褶短裙', `category` = 'BOTTOM', `sub_category` = '半身裙',
+  `color` = '黑色', `color_hex` = '#2E2E30', `season` = 'SPRING,AUTUMN',
+  `style_tags` = JSON_ARRAY('学院', '甜美', '百褶'), `material` = '涤纶混纺', `brand` = 'kitty',
+  `image_url` = '/items/item-pleated-skirt.jpg', `price` = 159.00
+WHERE `id` = 9;
+
+UPDATE `clothing` SET `name` = '米白阔腿休闲裤', `category` = 'BOTTOM', `sub_category` = '休闲裤',
+  `color` = '米白', `color_hex` = '#DDD6C6', `season` = 'SPRING,SUMMER,AUTUMN',
+  `style_tags` = JSON_ARRAY('简约', '宽松', '通勤'), `material` = '棉麻', `brand` = 'futenali',
+  `image_url` = '/items/item-cream-pants.jpg', `price` = 269.00
+WHERE `id` = 10;
+
+UPDATE `clothing` SET `name` = '豹纹托特包', `category` = 'BAG', `sub_category` = '托特包',
+  `color` = '豹纹', `color_hex` = '#C9A99A', `season` = 'SPRING,AUTUMN,WINTER',
+  `style_tags` = JSON_ARRAY('花纹', '个性', '大容量'), `material` = '帆布', `brand` = 'mila',
+  `image_url` = '/items/item-tote-bag.jpg', `price` = 239.00
+WHERE `id` = 11;
+
+UPDATE `clothing` SET `name` = '银色粗链项链', `category` = 'ACCESSORY', `sub_category` = '项链',
+  `color` = '银色', `color_hex` = '#C9CCD1', `season` = 'SPRING,SUMMER,AUTUMN,WINTER',
+  `style_tags` = JSON_ARRAY('街头', '金属', '点缀'), `material` = '925 银', `brand` = 'LETTEHHEART',
+  `image_url` = '/items/item-necklace.jpg', `price` = 189.00
+WHERE `id` = 12;
+
+-- ---------- 3. 套装：换上真实封面 ----------
+DELETE FROM `outfit` WHERE `id` IN (1, 3, 4);
+INSERT INTO `outfit` (`id`, `user_id`, `name`, `cover_url`, `occasion`, `season`, `item_ids`, `score`, `ai_generated`, `ai_reason`)
+VALUES
+(1, 1, '灰调通勤三件套', '/looks/look-black-knit.jpg', '通勤', 'AUTUMN', JSON_ARRAY(3, 8, 12), 88, 1,
+ '同色系叠穿，靠材质（羊毛 × 抓绒）拉开层次，银色粗链是唯一亮点，通勤不会显得用力。'),
+(3, 1, '灰绿户外叠穿', '/looks/look-grey-hoodie.jpg', '休闲', 'AUTUMN', JSON_ARRAY(4, 8, 11), 84, 1,
+ '灰绿卫衣压住豹纹包的张扬，全身只有两个色域，松垮廓形配大包比例刚好。'),
+(4, 1, '蓝调针织周末', '/looks/look-blue-cardigan.jpg', '约会', 'AUTUMN', JSON_ARRAY(6, 10, 12), 86, 1,
+ '牛仔蓝开衫配米白阔腿裤，冷调上衣 + 暖调下装，饱和度都不高，周末的松弛感。');
+
+-- ---------- 4. 社区：六条真实穿搭分享 ----------
+DELETE FROM `post` WHERE `id` IN (1, 2, 3, 4, 5, 6);
+
+INSERT INTO `post` (`id`, `user_id`, `outfit_id`, `title`, `content`, `images`, `tags`, `like_count`, `comment_count`, `view_count`, `status`, `created_at`)
+VALUES
+(1, 1, 1, '今天的通勤穿搭被同事要链接了',
+ '灰调三件套真的不容易出错：粗针毛衣 + 阔腿卫裤 + 银链。全身没有跳色，靠材质对比撑住，开会也不虚。',
+ JSON_ARRAY('/looks/look-black-knit.jpg'),
+ JSON_ARRAY('通勤', '同色系', '针织'), 47, 6, 320, 1, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(2, 3, NULL, '灰绿卫衣配豹纹包，松垮廓形也太好穿了',
+ '一直不敢碰花色的包，结果配灰绿卫衣意外和谐——大面积素色 + 一处花纹，记住这条就不容易翻车。',
+ JSON_ARRAY('/looks/look-grey-hoodie.jpg'),
+ JSON_ARRAY('街头', '宽松', '花纹点缀'), 63, 9, 512, 1, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(3, 4, NULL, '学院风套头卫衣，小个子也能穿',
+ '格纹翻领 + 百褶裙，裙长刚好在膝盖上一点，比例一下就出来了。配白鞋和白袜子是重点。',
+ JSON_ARRAY('/looks/look-polo-sweatshirt.jpg'),
+ JSON_ARRAY('学院', '甜美', '小个子'), 88, 14, 764, 1, DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(4, 4, NULL, '蓝色绣花开衫，秋天最上镜的一件',
+ '深蓝底 + 姜黄刺绣，本来怕太花，配米白阔腿裤之后反而显得很温柔。开衫一定要选落肩的。',
+ JSON_ARRAY('/looks/look-blue-cardigan.jpg'),
+ JSON_ARRAY('复古', '开衫', '秋日'), 102, 18, 933, 1, DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(5, 5, NULL, '做旧衬衫这样叠穿，比西装更松弛',
+ '衬衫不扣，里面叠白 T，下身同色系工装裤，整体像刚从工作室出来。鞋子选厚底的，显腿长。',
+ JSON_ARRAY('/looks/look-bleached-shirt.jpg'),
+ JSON_ARRAY('工装', '叠穿', '做旧'), 71, 11, 605, 1, DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(6, 5, NULL, '灰色双面呢大衣，两种领型怎么选',
+ '翻领更正式，立领更利落。185 以上选中长款不容易压个子，里面一件黑高领就够了。',
+ JSON_ARRAY('/looks/look-grey-coats.jpg'),
+ JSON_ARRAY('大衣', '通勤', '冬日'), 55, 7, 428, 1, DATE_SUB(NOW(), INTERVAL 8 DAY));
+
+-- 帖子与套装的关联（第 1 条帖子挂在通勤套装上）
+UPDATE `post` SET `outfit_id` = 1 WHERE `id` = 1;
+
+-- ---------- 5. 修正历史计数 ----------
+UPDATE `post` SET `comment_count` = (SELECT COUNT(*) FROM `comment` c WHERE c.`post_id` = `post`.`id`) WHERE `id` IN (1, 2, 3, 4, 5, 6);

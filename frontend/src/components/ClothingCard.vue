@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { SEASON_LABELS, type Clothing } from '@/types/clothing'
-import { catalogImage } from '@/utils/image'
+import { catalogImage, isPhotoImage } from '@/utils/image'
 
 const props = defineProps<{ item: Clothing }>()
 
@@ -25,6 +25,9 @@ const seasonText = computed(() =>
 /** 单品图统一用透明底版本，衬在固定的深色影棚底上 */
 const imageUrl = computed(() => catalogImage(props.item.imageUrl))
 
+/** 实拍照片铺满裁剪；透明底插画 / SVG 等比留白，避免四周出现大片空白 */
+const isPhoto = computed(() => isPhotoImage(imageUrl.value))
+
 const tileStyle = computed(() => ({
   background: `radial-gradient(120% 120% at 32% 8%, ${props.item.accentColor}2e, transparent 62%), #101216`,
 }))
@@ -41,7 +44,8 @@ const tileStyle = computed(() => ({
         :alt="item.name"
         loading="lazy"
         decoding="async"
-        class="size-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.05]"
+        class="size-full transition-transform duration-500 group-hover:scale-[1.05]"
+        :class="isPhoto ? 'object-cover' : 'object-contain p-4'"
         @error="imageFailed = true"
       />
       <div v-else class="grid size-full place-items-center">

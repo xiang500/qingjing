@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { GalleryItem } from '@/types/gallery'
-import { catalogImage } from '@/utils/image'
+import { catalogImage, isPhotoImage } from '@/utils/image'
 
 /**
  * 旋转衣橱画廊（参考视频 00:32 的 3D coverflow 效果）。
@@ -207,7 +207,12 @@ onBeforeUnmount(() => {
               v-if="catalogImage(item.imageUrl)"
               :src="catalogImage(item.imageUrl)"
               :alt="item.name"
-              class="relative size-full object-contain p-3 transition-transform duration-500 hover:scale-[1.04]"
+              class="relative size-full transition-transform duration-500 hover:scale-[1.04]"
+              :class="
+                isPhotoImage(catalogImage(item.imageUrl))
+                  ? 'object-cover'
+                  : 'object-contain p-3'
+              "
               draggable="false"
               loading="lazy"
             />

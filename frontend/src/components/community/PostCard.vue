@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { CommunityPost } from '@/types/community'
+import { isPhotoImage } from '@/utils/image'
 
 const props = defineProps<{ post: CommunityPost }>()
 
@@ -16,6 +17,11 @@ const covers = computed(() => props.post.images.filter(Boolean))
 const collage = computed(() => covers.value.length >= 3)
 const initial = computed(() => props.post.authorName.slice(0, 1))
 const canTryOn = computed(() => props.post.itemIds.length > 0)
+
+/** 实拍照片铺满裁剪；透明底插画 / SVG 等比留白并保留原有内边距 */
+function imageClass(url: string | undefined, padClass: string): string {
+  return isPhotoImage(url) ? 'object-cover' : `object-contain ${padClass}`
+}
 
 const createdText = computed(() => {
   if (!props.post.createdAt) {
@@ -42,7 +48,8 @@ const createdText = computed(() => {
             :src="covers[0]"
             :alt="post.title"
             loading="lazy"
-            class="size-full object-contain p-2 transition-transform duration-300 group-hover:scale-[1.03]"
+            class="size-full transition-transform duration-300 group-hover:scale-[1.03]"
+            :class="imageClass(covers[0], 'p-2')"
           />
         </div>
         <div class="grid min-h-0 grid-rows-2 gap-2">
@@ -55,7 +62,8 @@ const createdText = computed(() => {
               :src="src"
               :alt="post.title"
               loading="lazy"
-              class="size-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.03]"
+              class="size-full transition-transform duration-300 group-hover:scale-[1.03]"
+              :class="imageClass(src, 'p-1.5')"
             />
           </div>
         </div>
@@ -72,7 +80,8 @@ const createdText = computed(() => {
         :src="cover"
         :alt="post.title"
         loading="lazy"
-        class="size-full object-contain p-4 transition-transform duration-300 group-hover:scale-[1.03]"
+        class="size-full transition-transform duration-300 group-hover:scale-[1.03]"
+        :class="imageClass(cover, 'p-4')"
       />
       <div v-else class="grid size-full place-items-center">
         <span class="display text-4xl text-white/25">{{ post.title.slice(0, 1) }}</span>
